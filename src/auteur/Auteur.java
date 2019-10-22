@@ -4,7 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
 
-public class Auteur implements IAuteyr {
+public class Auteur implements IAuteur {
 
 	private final static String server = "localhost";
 	private final static int port = 12345;

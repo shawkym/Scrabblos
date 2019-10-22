@@ -2,7 +2,7 @@ package auteur;
 
 import java.io.IOException;
 
-public interface IAuteyr extends Runnable {
+public interface IAuteur extends Runnable {
 
 	public char[] getLettres();
 	public int getGlobalScore();
