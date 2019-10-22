@@ -10,9 +10,11 @@ import java.util.StringTokenizer;
 public class ScrabblosPolitician implements Runnable {
 
 	private final Socket socket;
-
-	public ScrabblosPolitician(Socket s) {
+	private boolean isAuthorityDelegate = false;
+	
+	public ScrabblosPolitician(Socket s, boolean isAuthorityDelegate) {
 		this.socket = s;
+		this.isAuthorityDelegate = isAuthorityDelegate;
 	}
 
 	public Socket getSocket() {
@@ -22,6 +24,7 @@ public class ScrabblosPolitician implements Runnable {
 	// Multi-Threaded Listening
 	@Override
 	public void run() {
+
 		// we manage our particular client connection
 		BufferedReader in = null;
 		PrintWriter out = null;
@@ -32,6 +35,11 @@ public class ScrabblosPolitician implements Runnable {
 			in = new BufferedReader(new InputStreamReader(getSocket().getInputStream()));
 			// we get character output stream to client (for reply)
 			out = new PrintWriter(getSocket().getOutputStream(),true);
+			if (isAuthorityDelegate)
+			{
+				//TODO: Make something to ask server
+				return;
+			}
 			while(true) {
 			// get first line of the request from the client
 			 input = in.readLine();
@@ -53,7 +61,9 @@ public class ScrabblosPolitician implements Runnable {
 	
 	public static void main (String args[]) throws Exception { 
 		System.out.println("Scrabblos Politician Node Starting...");
+		System.out.println("Searching for Authority...");
+		new MultiThreadListener(12345, ScrabblosPolitician.class).searchAuthority();
 		System.out.println("Listening...");
-		new MultiThreadListener(12345, ScrabblosPolitician.class).startListening(); 
+		new MultiThreadListener(12346, ScrabblosPolitician.class).startListening(); 
 	} 
 }
