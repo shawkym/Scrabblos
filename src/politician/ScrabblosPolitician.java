@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.StringTokenizer;
 
 public class ScrabblosPolitician implements Runnable {
@@ -37,8 +38,15 @@ public class ScrabblosPolitician implements Runnable {
 			out = new PrintWriter(getSocket().getOutputStream(),true);
 			if (isAuthorityDelegate)
 			{
-				//TODO: Make something to ask server
-				return;
+				// Should Client Register ??
+				String cmd2 =   "{\"register\":\"c2e39e952f96d51bd7caeec9441ed7c978c22724e0f0b1f1234182c1bdda36db\"}\n";
+				ByteBuffer ba = ByteBuffer.allocate(cmd2.length()+8);
+				ba.putLong(cmd2.chars().count());
+				//ba.flip();
+				ba.put(cmd2.getBytes());
+				getSocket().getOutputStream().write(ba.array());
+				//out.write(ba.array().toString());
+				out.flush();
 			}
 			while(true) {
 			// get first line of the request from the client
@@ -62,8 +70,8 @@ public class ScrabblosPolitician implements Runnable {
 	public static void main (String args[]) throws Exception { 
 		System.out.println("Scrabblos Politician Node Starting...");
 		System.out.println("Searching for Authority...");
-		new MultiThreadListener(12345, ScrabblosPolitician.class).searchAuthority();
+		new MultiThreadListener(12346, ScrabblosPolitician.class).searchAuthority();
 		System.out.println("Listening...");
-		new MultiThreadListener(12346, ScrabblosPolitician.class).startListening(); 
+		//new MultiThreadListener(12346, ScrabblosPolitician.class).startListening(); 
 	} 
 }
