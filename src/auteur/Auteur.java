@@ -329,6 +329,7 @@ public class Auteur implements Runnable, IAuteur {
 		if (letterBag.isEmpty())
 			return;
 		is_nextTurn = true;
+		injectLetter();
 	}
 
 	/**
@@ -344,9 +345,6 @@ public class Auteur implements Runnable, IAuteur {
 			getFullLetterPool();
 			injectLetter();
 			while(true) {
-				if(is_nextTurn) {
-					injectLetter();
-				}
 				read();
 			}
 		}catch (Exception e) {
