@@ -8,20 +8,20 @@ public class MultiThreadListener {
 
 	final int port;
 	ServerSocket socket;
-	Class<? extends Auteur> request_executor;
+	Class<? extends DumbAuteur> request_executor;
 
 	
-	public MultiThreadListener(int port, Class<? extends Auteur> re) {
+	public MultiThreadListener(int port, Class<? extends DumbAuteur> re) {
 		super();
 		this.port = port;
 		this.request_executor = re;
 	}
 	
-	public Class<? extends Auteur> getRequestExecutor() {
+	public Class<? extends DumbAuteur> getRequestExecutor() {
 		return request_executor;
 	}
 
-	public void setRequestExecutor(Class<? extends Auteur> re) {
+	public void setRequestExecutor(Class<? extends DumbAuteur> re) {
 		this.request_executor = re;
 	}
 
@@ -33,7 +33,7 @@ public class MultiThreadListener {
 	{
 		try {
 			Socket r = new Socket("localhost",port);
-			Auteur aut = request_executor.getConstructor(Socket.class,boolean.class).newInstance(r,true);
+			DumbAuteur aut = request_executor.getConstructor(Socket.class,boolean.class).newInstance(r,true);
 			new Thread(aut).start();
 		} catch (IOException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 			e.printStackTrace();
@@ -46,7 +46,7 @@ public class MultiThreadListener {
 			socket = new ServerSocket(port);
 			while (true) {
 				Socket socket_connexion = socket.accept();
-				Auteur res;
+				DumbAuteur res;
 				res = request_executor.getConstructor(Socket.class,boolean.class).newInstance(socket_connexion,false);
 				new Thread(res).start();
 			}
