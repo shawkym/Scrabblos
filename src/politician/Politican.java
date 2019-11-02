@@ -1,45 +1,30 @@
-package auteur;
+package politician;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.SignatureException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Base64;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.Stack;
 
-import org.bouncycastle.asn1.ASN1Encodable;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.DEROctetString;
-import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
-import org.bouncycastle.asn1.ocsp.Signature;
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 import org.bouncycastle.crypto.Signer;
@@ -48,8 +33,6 @@ import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
-import org.bouncycastle.crypto.util.PrivateKeyInfoFactory;
-import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -58,12 +41,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.sun.jarsigner.ContentSigner;
 
+import auteur.Auteur;
 import scrabblos.Block;
+import scrabblos.Trie;
 import scrabblos.Utils;
+import scrabblos.Trie.TrieNode;
 
-public class Auteur implements Runnable, IAuteur {
+public class Politican implements Runnable, IPolitician {
 
 	// Network
 	private final static String server = "localhost";
@@ -73,43 +58,50 @@ public class Auteur implements Runnable, IAuteur {
 	private DataOutputStream writer;
 	// Crypto
 	AsymmetricCipherKeyPair asymmetricCipherKeyPair = null;
-	CipherParameters privateKey = null;
+	Ed25519PrivateKeyParameters privateKey = null;
 	Ed25519PublicKeyParameters publicKey = null;
-	Ed25519PrivateKeyParameters privateKey2 = null;
 	// Logic;
 	public ArrayList<Character> letterBag;
 	public ArrayList<Character> letterPool;
+	public Set<String> dictionary;
 	private long period;
 	private int id;
 	private Block block;
-	private static int next_auteur_id = 0;
-	boolean is_nextTurn = true;
+	private static int next_Politician_id = 0;
+
 	/**
 	 * Creates a new client and generates random keys
-	 * @param is_nextTurn 
 	 * @throws UnknownHostException
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 * @throws NoSuchProviderException
 	 */
-	public Auteur() throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException {
+	public Politican() throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException {
 		socket = new Socket(server, port);
-		id = next_auteur_id++;
+		id = next_Politician_id++;
 		period = 0;		
-		is_nextTurn = true;
 		Security.addProvider(new BouncyCastleProvider());
 		SecureRandom random = new SecureRandom();
 		Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
 		keyPairGenerator.init(new Ed25519KeyGenerationParameters(random));
 		asymmetricCipherKeyPair = keyPairGenerator.generateKeyPair();
-		privateKey = asymmetricCipherKeyPair.getPrivate();
+		privateKey = (Ed25519PrivateKeyParameters) asymmetricCipherKeyPair.getPrivate();
 		publicKey = (Ed25519PublicKeyParameters) asymmetricCipherKeyPair.getPublic();
-		privateKey2 = (Ed25519PrivateKeyParameters) asymmetricCipherKeyPair.getPrivate();
 		block = new Block();
 		reader = new DataInputStream(socket.getInputStream());
 		writer = new DataOutputStream(socket.getOutputStream());
 		letterBag = new ArrayList<Character>();
 		letterPool = new ArrayList<Character>();
+		dictionary = new HashSet<String>();
+		Trie.root = new TrieNode(); 
+		Scanner filescan = new Scanner(new File("src/dict.txt"));
+		while (filescan.hasNext()) {
+			String line = filescan.nextLine().toLowerCase();
+			dictionary.add(line);
+			Trie.insert(line);
+		}
+		filescan.close();
+		
 	}
 
 
@@ -130,7 +122,7 @@ public class Auteur implements Runnable, IAuteur {
 		byte [] cbuf = new byte[(int)taille];
 		reader.read(cbuf, 0, (int)taille);
 		String s = new String(cbuf,"UTF-8");
-		System.out.println("Author "+id+" receive "+s);
+		System.out.println("Politician "+id+" receive "+s);
 
 		JsonObject x =  new JsonParser().parse(s).getAsJsonObject();
 		JsonArray array  =  (JsonArray) x.get("letters_bag");
@@ -144,20 +136,19 @@ public class Auteur implements Runnable, IAuteur {
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeyException
-	 * @thEd25519withDSArows JSONException
+	 * @throws JSONException
 	 * @throws SignatureException
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
-	 * @throws InvalidKeySpecException 
 	 */
 	@Override
-	public void injectLetter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException, InvalidKeySpecException {
+	public void injectLetter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
 		JSONObject data = new JSONObject();
 		JSONObject letter = getLetter();
 		data.put("inject_letter", letter);
 		String msg = data.toString();
-		System.out.println("Auteur " + id + " "+ msg);
+		System.out.println("Politician " + id + " "+ msg);
 		writer.writeLong(msg.length());
 		writer.write(msg.getBytes("UTF-8"),0,msg.length());
 		block = new Block(letter, block);
@@ -169,16 +160,15 @@ public class Auteur implements Runnable, IAuteur {
 	 * @return JSONObject containing a letter
 	 * @throws JSONException
 	 * @throws NoSuchAlgorithmException
+	 * @throws UnsupportedEncodingException
 	 * @throws InvalidKeyException
 	 * @throws SignatureException
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
-	 * @throws IOException 
-	 * @throws InvalidKeySpecException 
 	 */
 	@Override
-	public JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException, IOException, InvalidKeySpecException {
+	public JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
 		Random rand = new Random();
 		int alea = rand.nextInt(letterBag.size());
 		Character c = letterBag.remove(alea);
@@ -209,14 +199,12 @@ public class Auteur implements Runnable, IAuteur {
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeyException
 	 * @throws SignatureException
+	 * @throws UnsupportedEncodingException
 	 * @throws DataLengthException
 	 * @throws CryptoException
-	 * @throws IOException 
-	 * @throws InvalidKeySpecException 
-	 * @throws NoSuchProviderException 
 	 */
 	@Override
-	public byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, IOException, InvalidKeySpecException, NoSuchProviderException {
+	public byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, UnsupportedEncodingException, DataLengthException, CryptoException {
 		Signer signer = new Ed25519Signer();
 		signer.init(true, privateKey);
 		signer.update(message.getBytes(), 0, message.length());
@@ -251,15 +239,14 @@ public class Auteur implements Runnable, IAuteur {
 	 * @throws SignatureException
 	 * @throws NoSuchProviderException
 	 * @throws CryptoException
-	 * @throws InvalidKeySpecException 
 	 */
 	@Override
-	public void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, NoSuchProviderException, CryptoException, InvalidKeySpecException {
+	public void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, NoSuchProviderException, CryptoException {
 		long taille_ans = reader.readLong();
 		byte [] cbuf = new byte[(int)taille_ans];
 		reader.read(cbuf, 0, (int)taille_ans);
 		String s = new String(cbuf,"UTF-8");
-		System.out.println("Author "+id+" receive "+s);
+		System.out.println("Politician "+id+" Got "+s);
 		JSONObject o = new JSONObject(s);
 		//JsonObject myo =  (JsonObject) new JsonParser().parse(s);
 		if (s.contains("full_letterpool"))
@@ -267,14 +254,35 @@ public class Auteur implements Runnable, IAuteur {
 		if (s.contains("next_turn"))
 			nextTurn(o);
 		if (s.contains("inject_letter"))
-			injected_letter(o);
+			parseInjectedLetterMessage(o);
+		if (s.contains("full_wordpool"))
+			parseFullWordPool(o);
 	}
+
+	/**
+	 * Parse full word pool
+	 * @param word pool as json
+	 */
+	private void parseFullWordPool(JSONObject o) {
+		JSONObject j = (JSONObject) o.get("full_wordpool");
+		Integer fperiod = (Integer) j.get("current_period");
+		period = Long.parseLong(fperiod.toString());
+		JsonObject lettersj =  new JsonParser().parse(o.toString()).getAsJsonObject();
+		lettersj = (JsonObject) lettersj.get("full_wordpool");
+		JsonElement letters = lettersj.get("words");
+		for (JsonElement l : letters.getAsJsonArray())
+		{
+			JsonObject word = (JsonObject) ((JsonArray)l).get(1);
+			letterPool.add(word.get("letter").getAsCharacter());
+		}
+	}
+
 
 	/**
 	 * Parse injected_letter message 
 	 * @param injected_letter JSONObject contatining message  
 	 */
-	private void injected_letter(JSONObject o) {
+	private void parseInjectedLetterMessage(JSONObject o) {
 		char c = ((JSONObject) o.get("inject_letter")).getString("letter").charAt(0);
 		letterPool.add(c);
 	}
@@ -343,10 +351,9 @@ public class Auteur implements Runnable, IAuteur {
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
-	 * @throws InvalidKeySpecException 
 	 */
 	@Override
-	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException, InvalidKeySpecException {
+	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
 		period = o.getInt("next_turn");
 		if (letterBag.isEmpty())
 			return;
@@ -354,17 +361,18 @@ public class Auteur implements Runnable, IAuteur {
 	}
 
 	/**
-	 * Main Loop of Auteur
+	 * Main Loop of Politician
 	 */
 	@Override
 	public void run() {
-		System.out.println("Starting Scrabblos Auteur Node " + id);
+		System.out.println("Starting Scrabblos Politician Node " + id);
 		try {
 
-			registerOnServer();
+			//	registerOnServer();
 			listen();
 			getFullLetterPool();
-			injectLetter();
+			getFullWordPool();
+			injectWord();
 			while(true) {
 				read();
 			}
@@ -373,13 +381,68 @@ public class Auteur implements Runnable, IAuteur {
 		}
 	}
 
-	public PrivateKey readPrivateKey() throws IOException {
-		InputStream inputStream = new ByteArrayInputStream(Base64.getEncoder().encode(privateKey2.getEncoded()));
-		BufferedInputStream fis=new BufferedInputStream(inputStream);
-		
-		return (PrivateKey)PrivateKeyInfo.getInstance(new ASN1InputStream(fis).readObject());
+	/**
+	 * Get full word pool from server
+	 * @throws IOException
+	 */
+	private void getFullWordPool() throws IOException {
+		JSONObject obj = new JSONObject();
+		obj.put("get_full_wordpool",JSONObject.NULL);
+		String msg = obj.toString();
+		long taille = msg.length();
+		writer.writeLong(taille);
+		writer.write(msg.getBytes("UTF-8"),0,(int)taille);
 	}
 
+	/**
+	 * Validate a word (block of letters)
+	 * @throws NoSuchProviderException 
+	 * @throws NoSuchAlgorithmException 
+	 */
+	private void injectWord() throws NoSuchAlgorithmException, NoSuchProviderException {
+		block = new Block();
+		List<List<String>> results = new ArrayList<List<String>>();
+		Trie.search("f");
+		searchDictionary("fh",dictionary, new Stack<String>(), results);
+		for (List<String> result : results) {
+			for (String word : result) {
+				System.out.print(word + " ");
+			}
+			System.out.println("(" + result.size() + " words)");
+		}
+	}
+
+	/**
+	 * Search similar words in Set Dict
+	 * @param input
+	 * @param dictionary
+	 * @param words
+	 * @param results
+	 */
+	public static void searchDictionary(String input, Set<String> dictionary,
+			Stack<String> words, List<List<String>> results) {
+
+		for (int i = 0; i < input.length(); i++) {
+			// take the first i characters of the input and see if it is a word
+			String substring = input.substring(0, i + 1);
+
+			if (dictionary.contains(substring)) {
+				// the beginning of the input matches a word, store on stack
+				words.push(substring);
+
+				if (i == input.length() - 1) {
+					// there's no input left, copy the words stack to results
+					results.add(new ArrayList<String>(words));
+				} else {
+					// there's more input left, search the remaining part
+					searchDictionary(input.substring(i + 1), dictionary, words, results);
+				}
+
+				// pop the matched word back off so we can move onto the next i
+				words.pop();
+			}
+		}
+	}
 
 	/**
 	 * Static Main for testing 
@@ -436,7 +499,11 @@ public class Auteur implements Runnable, IAuteur {
 
 		//assertEquals(expectedSig, actualSignature);	
 		 */
-		new Thread(new Auteur()).start();
-		new Thread(new Auteur()).start();
+		Politican p = new Politican();
+		p.injectWord();
+		//new Thread(p).start();
+	//	new Thread(new Politican()).start();
+		//new Thread(new Auteur()).start();
+		//new Thread(new Auteur()).start();
 	}
 }
