@@ -19,7 +19,7 @@ public class Scrabblos {
 	public static void makeMessage (String cmd, Socket s)
 	{
 		ByteBuffer ba = ByteBuffer.allocate(cmd.length()+8);
-		ba.putLong(cmd.chars().count());
+		ba.putLong(cmd.length());
 		//ba.flip();
 		ba.put(cmd.getBytes());
 		try {

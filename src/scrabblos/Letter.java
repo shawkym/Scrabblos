@@ -29,8 +29,9 @@ public class Letter {
 	 * 
 	 * @return
 	 */
-	public static int getScore(char c)
+	public static int getScore(char b)
 	{
+		Character c = Character.toLowerCase(b);
 		if (c == 'A' || c == 'I' || c== 'E'
 				|| c== 'L' || c== 'N' || c=='O'
 				|| c== 'R' || c== 'S' || c=='T')

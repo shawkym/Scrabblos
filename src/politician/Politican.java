@@ -43,10 +43,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import auteur.Auteur;
+import scrabble.Dictionary;
+import scrabble.Scrabble;
+import scrabble.TileBag;
 import scrabblos.Block;
-import scrabblos.Trie;
+import scrabblos.Letter;
 import scrabblos.Utils;
-import scrabblos.Trie.TrieNode;
 
 public class Politican implements Runnable, IPolitician {
 
@@ -64,19 +66,22 @@ public class Politican implements Runnable, IPolitician {
 	public ArrayList<Character> letterBag;
 	public ArrayList<Character> letterPool;
 	public Set<String> dictionary;
+	//public Trie trie;
 	private long period;
 	private int id;
 	private Block block;
+	private TileBag tileBag;
 	private static int next_Politician_id = 0;
-
+	private Scrabble scrbl;
 	/**
 	 * Creates a new client and generates random keys
+	 * @param b 
 	 * @throws UnknownHostException
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 * @throws NoSuchProviderException
 	 */
-	public Politican() throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException {
+	public Politican(Scrabble b) throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException {
 		socket = new Socket(server, port);
 		id = next_Politician_id++;
 		period = 0;		
@@ -93,43 +98,12 @@ public class Politican implements Runnable, IPolitician {
 		letterBag = new ArrayList<Character>();
 		letterPool = new ArrayList<Character>();
 		dictionary = new HashSet<String>();
-		Trie.root = new TrieNode(); 
-		Scanner filescan = new Scanner(new File("src/dict.txt"));
-		while (filescan.hasNext()) {
-			String line = filescan.nextLine().toLowerCase();
-			dictionary.add(line);
-			Trie.insert(line);
-		}
-		filescan.close();
-		
+		//trie = new Trie(); 
+		this.scrbl = b;
+		tileBag = new TileBag(scrbl);
+		scrbl.setTileBag(tileBag);
 	}
 
-
-	/** 
-	 * Register this client on server authority 
-	 * 
-	 * @throws IOException
-	 */
-	@Override
-	public void registerOnServer() throws IOException {
-		JSONObject data = new JSONObject();
-		String key = Utils.bytesToHex(publicKey.getEncoded());
-		data.put("register", key);
-		String msg = data.toString();
-		writer.writeLong(msg.length());
-		writer.write(msg.getBytes("UTF-8"),0,msg.length());
-		long taille = reader.readLong();
-		byte [] cbuf = new byte[(int)taille];
-		reader.read(cbuf, 0, (int)taille);
-		String s = new String(cbuf,"UTF-8");
-		System.out.println("Politician "+id+" receive "+s);
-
-		JsonObject x =  new JsonParser().parse(s).getAsJsonObject();
-		JsonArray array  =  (JsonArray) x.get("letters_bag");
-		for(JsonElement e : array) {
-			letterBag.add(e.getAsCharacter());
-		}
-	}
 
 	/** 
 	 * Pseudo mine next block 
@@ -301,7 +275,8 @@ public class Politican implements Runnable, IPolitician {
 		for (JsonElement l : letters.getAsJsonArray())
 		{
 			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
-			letterPool.add(o.get("letter").getAsCharacter());
+			int s = Letter.getScore(o.get("letter").getAsCharacter());
+			tileBag.AddTile((o.get("letter").getAsCharacter()), s);
 		}
 	}
 
@@ -402,7 +377,9 @@ public class Politican implements Runnable, IPolitician {
 	private void injectWord() throws NoSuchAlgorithmException, NoSuchProviderException {
 		block = new Block();
 		List<List<String>> results = new ArrayList<List<String>>();
-		Trie.search("f");
+		char[] priority = "KWXYZJQFHVBCPDGMAEILNORSTU".toLowerCase().toCharArray();
+		
+		//trie.findWords(trie.root,"f");
 		searchDictionary("fh",dictionary, new Stack<String>(), results);
 		for (List<String> result : results) {
 			for (String word : result) {
@@ -499,11 +476,20 @@ public class Politican implements Runnable, IPolitician {
 
 		//assertEquals(expectedSig, actualSignature);	
 		 */
-		Politican p = new Politican();
-		p.injectWord();
+		Scrabble b = new Scrabble(new Dictionary());
+		Politican p = new Politican(b);
+		new Thread(p).start();
+		
 		//new Thread(p).start();
 	//	new Thread(new Politican()).start();
 		//new Thread(new Auteur()).start();
 		//new Thread(new Auteur()).start();
+	}
+
+
+	@Override
+	public void registerOnServer() throws IOException {
+		// TODO Auto-generated method stub
+		
 	}
 }

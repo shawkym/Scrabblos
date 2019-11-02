@@ -6,10 +6,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.util.Base64;
-import java.util.Base64.Encoder;
+
 
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.util.encoders.Base64;
+import org.bouncycastle.util.encoders.Encoder;
 
 public class Utils {
 
@@ -53,9 +54,8 @@ public class Utils {
 
 	public static String getHexKey(AsymmetricKeyParameter asymmetricKeyParameter) {
 		byte [] array = asymmetricKeyParameter.toString().getBytes();
-		Encoder encoder = Base64.getEncoder();
-		String s = encoder.encodeToString(array);
-		byte[] decoded = Base64.getDecoder().decode(s);
+		String s = Base64.toBase64String(array);
+		byte[] decoded = Base64.decode(s);
 		String res = String.format("%040x", new BigInteger(1, decoded));
 		return res.substring(0, 63);
 	}
