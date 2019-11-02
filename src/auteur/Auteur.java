@@ -39,28 +39,36 @@ import com.google.gson.JsonParser;
 import scrabblos.Block;
 import scrabblos.Utils;
 
-public class Auteur implements Runnable {
+public class Auteur implements Runnable, IAuteur {
 
+	// Network
 	private final static String server = "localhost";
 	private final static int port = 12345;
-	private Socket connexion;
+	private Socket socket;
 	private DataInputStream reader;
 	private DataOutputStream writer;
+	// Crypto
 	AsymmetricCipherKeyPair asymmetricCipherKeyPair = null;
 	Ed25519PrivateKeyParameters privateKey = null;
 	Ed25519PublicKeyParameters publicKey = null;
-	//	private KeyPair keyPair;
-	public ArrayList<Character> letter_bag;
-	public ArrayList<Character> letter_pool;
+	// Logic;
+	public ArrayList<Character> letterBag;
+	public ArrayList<Character> letterPool;
 	private long period;
 	private int id;
 	private Block block;
-	private static int cpt = 0;
+	private static int next_auteur_id = 0;
 
-
+	/**
+	 * Creates a new client and generates random keys
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchProviderException
+	 */
 	public Auteur() throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException {
-		connexion = new Socket(server, port);
-		id = cpt++;
+		socket = new Socket(server, port);
+		id = next_auteur_id++;
 		period = 0;		
 		Security.addProvider(new BouncyCastleProvider());
 		SecureRandom random = new SecureRandom();
@@ -70,13 +78,20 @@ public class Auteur implements Runnable {
 		privateKey = (Ed25519PrivateKeyParameters) asymmetricCipherKeyPair.getPrivate();
 		publicKey = (Ed25519PublicKeyParameters) asymmetricCipherKeyPair.getPublic();
 		block = new Block();
-		reader = new DataInputStream(connexion.getInputStream());
-		writer = new DataOutputStream(connexion.getOutputStream());
-		letter_bag = new ArrayList<Character>();
-		letter_pool = new ArrayList<Character>();
+		reader = new DataInputStream(socket.getInputStream());
+		writer = new DataOutputStream(socket.getOutputStream());
+		letterBag = new ArrayList<Character>();
+		letterPool = new ArrayList<Character>();
 	}
 
-	public void register() throws IOException {
+
+	/** 
+	 * Register this client on server authority 
+	 * 
+	 * @throws IOException
+	 */
+	@Override
+	public void registerOnServer() throws IOException {
 		JSONObject data = new JSONObject();
 		String key = Utils.bytesToHex(publicKey.getEncoded());
 		data.put("register", key);
@@ -92,11 +107,23 @@ public class Auteur implements Runnable {
 		JsonObject x =  new JsonParser().parse(s).getAsJsonObject();
 		JsonArray array  =  (JsonArray) x.get("letters_bag");
 		for(JsonElement e : array) {
-			letter_bag.add(e.getAsCharacter());
+			letterBag.add(e.getAsCharacter());
 		}
 	}
 
-	public void inject_Letter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
+	/** 
+	 * Pseudo mine next block 
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeyException
+	 * @throws JSONException
+	 * @throws SignatureException
+	 * @throws DataLengthException
+	 * @throws CryptoException
+	 * @throws NoSuchProviderException
+	 */
+	@Override
+	public void injectLetter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
 		JSONObject data = new JSONObject();
 		JSONObject letter = getLetter();
 		data.put("inject_letter", letter);
@@ -107,11 +134,25 @@ public class Auteur implements Runnable {
 		block = new Block(letter, block);
 	}
 
+	/**
+	 * Get a letter from letter_bag and prepare it for injection
+	 * and adds it to the current letter_pool
+	 * @return JSONObject containing a letter
+	 * @throws JSONException
+	 * @throws NoSuchAlgorithmException
+	 * @throws UnsupportedEncodingException
+	 * @throws InvalidKeyException
+	 * @throws SignatureException
+	 * @throws DataLengthException
+	 * @throws CryptoException
+	 * @throws NoSuchProviderException
+	 */
+	@Override
 	public JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
 		Random rand = new Random();
-		int alea = rand.nextInt(letter_bag.size());
-		Character c = letter_bag.remove(alea);
-		letter_pool.add(c);
+		int alea = rand.nextInt(letterBag.size());
+		Character c = letterBag.remove(alea);
+		letterPool.add(c);
 		JSONObject letter = new JSONObject();
 		letter.put("letter", c);
 		letter.put("period", period);
@@ -131,7 +172,18 @@ public class Auteur implements Runnable {
 		return letter;
 	}
 
-
+	/**
+	 * Signs a message using Ed25519Signer
+	 * @param  a message to sign
+	 * @return array of bytes containing digital signature
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeyException
+	 * @throws SignatureException
+	 * @throws UnsupportedEncodingException
+	 * @throws DataLengthException
+	 * @throws CryptoException
+	 */
+	@Override
 	public byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, UnsupportedEncodingException, DataLengthException, CryptoException {
 		Signer signer = new Ed25519Signer();
 		signer.init(true, privateKey);
@@ -142,6 +194,11 @@ public class Auteur implements Runnable {
 		//return actualSignature;
 	}
 
+	/**
+	 * Inform the server authority we're reading update regularly 
+	 * @throws IOException
+	 */
+	@Override
 	public void listen() throws IOException {
 		JSONObject data = new JSONObject();
 		data.put("listen",JSONObject.NULL);
@@ -152,6 +209,18 @@ public class Auteur implements Runnable {
 
 	}
 
+	/**
+	 * Read Incoming messages from authority server
+	 * @throws IOException
+	 * @throws JSONException
+	 * @throws InvalidKeyException
+	 * @throws DataLengthException
+	 * @throws NoSuchAlgorithmException
+	 * @throws SignatureException
+	 * @throws NoSuchProviderException
+	 * @throws CryptoException
+	 */
+	@Override
 	public void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, NoSuchProviderException, CryptoException {
 		long taille_ans = reader.readLong();
 		byte [] cbuf = new byte[(int)taille_ans];
@@ -161,19 +230,27 @@ public class Auteur implements Runnable {
 		JSONObject o = new JSONObject(s);
 		//JsonObject myo =  (JsonObject) new JsonParser().parse(s);
 		if (s.contains("full_letterpool"))
-		parse_letter_pool(o);
+			parseLetterPool(o);
 		if (s.contains("next_turn"))
-		next_turn(o);
+			nextTurn(o);
 		if (s.contains("inject_letter"))
-		injected_letter(o);
+			injected_letter(o);
 	}
 
+	/**
+	 * Parse injected_letter message 
+	 * @param injected_letter JSONObject contatining message  
+	 */
 	private void injected_letter(JSONObject o) {
 		char c = ((JSONObject) o.get("inject_letter")).getString("letter").charAt(0);
-		letter_pool.add(c);
+		letterPool.add(c);
 	}
 
-	private void parse_letter_pool(JSONObject x) {
+	/**
+	 * Parse letter_pool message 
+	 * @param letterPool JSONObject contatining message 
+	 */
+	private void parseLetterPool(JSONObject x) {
 		JSONObject j = (JSONObject) x.get("full_letterpool");
 		Integer fperiod = (Integer) j.get("current_period");
 		period = Long.parseLong(fperiod.toString());
@@ -183,10 +260,17 @@ public class Auteur implements Runnable {
 		for (JsonElement l : letters.getAsJsonArray())
 		{
 			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
-			letter_pool.add(o.get("letter").getAsCharacter());
+			letterPool.add(o.get("letter").getAsCharacter());
 		}
 	}
 
+	/**
+	 * Get Full Letter Pool from Server
+	 * @return true when successful 
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	@Override
 	public boolean getFullLetterPool() throws IOException, JSONException {
 		JSONObject obj = new JSONObject();
 		obj.put("get_full_letterpool",JSONObject.NULL);
@@ -197,7 +281,14 @@ public class Auteur implements Runnable {
 		return true;
 	}
 
-
+	/**
+	 * Get letter pool since period p
+	 * @param p : last known period 
+	 * @return true when successful 
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	@Override
 	public boolean getLetterPoolSince(int p) throws IOException, JSONException {
 		JSONObject obj = new JSONObject();
 		obj.put("get_letterpool_since",p);
@@ -208,22 +299,38 @@ public class Auteur implements Runnable {
 		return true;
 	}
 
-	public void next_turn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
+	/**
+	 * Parse next_turn message and start mining
+	 * @param o JSONObject of next_turn message
+	 * @throws InvalidKeyException
+	 * @throws JSONException
+	 * @throws NoSuchAlgorithmException
+	 * @throws SignatureException
+	 * @throws IOException
+	 * @throws DataLengthException
+	 * @throws CryptoException
+	 * @throws NoSuchProviderException
+	 */
+	@Override
+	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
 		period = o.getInt("next_turn");
-		if (letter_bag.isEmpty())
+		if (letterBag.isEmpty())
 			return;
-		inject_Letter();
+		injectLetter();
 	}
 
+	/**
+	 * Main Loop of Auteur
+	 */
 	@Override
 	public void run() {
 		System.out.println("Starting Scrabblos Auteur Node " + id);
 		try {
 
-			register();
+			registerOnServer();
 			listen();
 			getFullLetterPool();
-			inject_Letter();
+			injectLetter();
 			while(true) {
 				read();
 			}
@@ -232,7 +339,18 @@ public class Auteur implements Runnable {
 		}
 	}
 
-
+	/**
+	 * Static Main for testing 
+	 * @param args
+	 * @throws SignatureException
+	 * @throws InvalidKeyException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchProviderException
+	 * @throws DataLengthException
+	 * @throws CryptoException
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
 	public static void main(String[] args) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, DataLengthException, CryptoException, UnknownHostException, IOException {
 		/*
 		Security.addProvider(new BouncyCastleProvider());
@@ -263,7 +381,7 @@ public class Auteur implements Runnable {
 		byte[] s = sig.sign();
 		String signature = Utils.bytesToHex(s);
 		System.out.println(s.toString());
-		
+
 		// Generate new signature
 		Signer signer = new Ed25519Signer();
 		signer.init(true, privateKey);
@@ -275,7 +393,7 @@ public class Auteur implements Runnable {
 		System.out.println("Actual signature  : {}"+actualSignature);
 
 		//assertEquals(expectedSig, actualSignature);	
-		*/
+		 */
 		new Thread(new Auteur()).start();
 		new Thread(new Auteur()).start();
 	}
