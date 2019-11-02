@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.Base64;
 import java.util.Base64.Encoder;
 
@@ -13,9 +14,9 @@ import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 public class Utils {
 
 	
-	public static byte[] getSHA(String input) throws NoSuchAlgorithmException
+	public static byte[] getSHA(String input) throws NoSuchAlgorithmException, NoSuchProviderException
 	{
-		MessageDigest md = MessageDigest.getInstance("SHA-256");
+		MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
 		return md.digest(input.getBytes(StandardCharsets.UTF_8));
 	}
 	
@@ -37,7 +38,7 @@ public class Utils {
         return c;
     }
 	
-	 public static String hash(String input) throws NoSuchAlgorithmException {
+	 public static String hash(String input) throws NoSuchAlgorithmException, NoSuchProviderException {
 	    	return bytesToHex(getSHA(input));
 	    }
 	

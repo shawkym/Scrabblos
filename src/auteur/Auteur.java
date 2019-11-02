@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -49,8 +50,9 @@ public class Auteur implements Runnable {
 	Ed25519PrivateKeyParameters privateKey = null;
 	Ed25519PublicKeyParameters publicKey = null;
 	//	private KeyPair keyPair;
-	public ArrayList<Character> letters;
-	private int period;
+	public ArrayList<Character> letter_bag;
+	public ArrayList<Character> letter_pool;
+	private long period;
 	private int id;
 	private Block block;
 	private static int cpt = 0;
@@ -70,7 +72,8 @@ public class Auteur implements Runnable {
 		block = new Block();
 		reader = new DataInputStream(connexion.getInputStream());
 		writer = new DataOutputStream(connexion.getOutputStream());
-		letters = new ArrayList<Character>();
+		letter_bag = new ArrayList<Character>();
+		letter_pool = new ArrayList<Character>();
 	}
 
 	public void register() throws IOException {
@@ -89,38 +92,40 @@ public class Auteur implements Runnable {
 		JsonObject x =  new JsonParser().parse(s).getAsJsonObject();
 		JsonArray array  =  (JsonArray) x.get("letters_bag");
 		for(JsonElement e : array) {
-			letters.add(e.getAsCharacter());
+			letter_bag.add(e.getAsCharacter());
 		}
 	}
 
-	public void inject_Letter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException, SignatureException, DataLengthException, CryptoException {
+	public void inject_Letter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
 		JSONObject data = new JSONObject();
 		JSONObject letter = getLetter();
 		data.put("inject_letter", letter);
 		String msg = data.toString();
-		System.out.println(msg);
+		System.out.println("Auteur " + id + " "+ msg);
 		writer.writeLong(msg.length());
 		writer.write(msg.getBytes("UTF-8"),0,msg.length());
 		block = new Block(letter, block);
 	}
 
-	public JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException, SignatureException, DataLengthException, CryptoException {
+	public JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
 		Random rand = new Random();
-		int alea = rand.nextInt(letters.size());
-		Character c = letters.remove(alea);
+		int alea = rand.nextInt(letter_bag.size());
+		Character c = letter_bag.remove(alea);
+		letter_pool.add(c);
 		JSONObject letter = new JSONObject();
 		letter.put("letter", c);
 		letter.put("period", period);
-		letter.put("head",  Utils.hash(""));
+		letter.put("head",  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 		letter.put("author", Utils.bytesToHex(publicKey.getEncoded()));
 		ByteBuffer bb = ByteBuffer.allocate(8096);
 		bb.putChar(c);
 		bb.putLong(period);
-		bb.put(Utils.hash("").getBytes());
-		bb.put(Utils.bytesToHex(publicKey.getEncoded()).getBytes());
+		bb.put(("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855").getBytes("UTF-8"));
+		bb.put(publicKey.getEncoded());
+		bb.order(ByteOrder.BIG_ENDIAN);
 		//String s = Utils.hash(Utils.StringToBinairy(c.toString())+Utils.StringToBinairy(new String(bb.array())+Utils.StringToBinairy(Utils.hash(""))+asymmetricCipherKeyPair.getPublic());
-		MessageDigest md = MessageDigest.getInstance("SHA256");
-		String f = new String (md.digest(bb.array()));
+		MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
+		String f = new String (md.digest(bb.array()),"UTF-8");
 		byte[] sig = signMessage(f);
 		letter.put("signature", Utils.bytesToHex(sig));
 		return letter;
@@ -147,14 +152,39 @@ public class Auteur implements Runnable {
 
 	}
 
-	public void read() throws IOException, JSONException {
+	public void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, NoSuchProviderException, CryptoException {
 		long taille_ans = reader.readLong();
 		byte [] cbuf = new byte[(int)taille_ans];
 		reader.read(cbuf, 0, (int)taille_ans);
 		String s = new String(cbuf,"UTF-8");
 		System.out.println("Author "+id+" receive "+s);
+		JSONObject o = new JSONObject(s);
+		//JsonObject myo =  (JsonObject) new JsonParser().parse(s);
+		if (s.contains("full_letterpool"))
+		parse_letter_pool(o);
+		if (s.contains("next_turn"))
+		next_turn(o);
+		if (s.contains("inject_letter"))
+		injected_letter(o);
+	}
 
+	private void injected_letter(JSONObject o) {
+		char c = ((JSONObject) o.get("inject_letter")).getString("letter").charAt(0);
+		letter_pool.add(c);
+	}
 
+	private void parse_letter_pool(JSONObject x) {
+		JSONObject j = (JSONObject) x.get("full_letterpool");
+		Integer fperiod = (Integer) j.get("current_period");
+		period = Long.parseLong(fperiod.toString());
+		JsonObject lettersj =  new JsonParser().parse(x.toString()).getAsJsonObject();
+		lettersj = (JsonObject) lettersj.get("full_letterpool");
+		JsonElement letters = lettersj.get("letters");
+		for (JsonElement l : letters.getAsJsonArray())
+		{
+			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
+			letter_pool.add(o.get("letter").getAsCharacter());
+		}
 	}
 
 	public boolean getFullLetterPool() throws IOException, JSONException {
@@ -164,8 +194,6 @@ public class Auteur implements Runnable {
 		long taille = msg.length();
 		writer.writeLong(taille);
 		writer.write(msg.getBytes("UTF-8"),0,(int)taille);
-
-		read();
 		return true;
 	}
 
@@ -177,13 +205,13 @@ public class Auteur implements Runnable {
 		long taille = msg.length();
 		writer.writeLong(taille);
 		writer.write(msg.getBytes("UTF-8"),0,(int)taille);
-		read();
-
 		return true;
 	}
 
-	public void next_turn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException {
-		period = o.getInt("period");
+	public void next_turn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
+		period = o.getInt("next_turn");
+		if (letter_bag.isEmpty())
+			return;
 		inject_Letter();
 	}
 
@@ -194,6 +222,7 @@ public class Auteur implements Runnable {
 
 			register();
 			listen();
+			getFullLetterPool();
 			inject_Letter();
 			while(true) {
 				read();
@@ -247,7 +276,7 @@ public class Auteur implements Runnable {
 
 		//assertEquals(expectedSig, actualSignature);	
 		*/
-		//new Thread(new Auteur()).start();
+		new Thread(new Auteur()).start();
 		new Thread(new Auteur()).start();
 	}
 }
