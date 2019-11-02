@@ -95,6 +95,7 @@ public class Auteur implements Runnable, IAuteur {
 		socket = new Socket(server, port);
 		id = next_auteur_id++;
 		period = 0;		
+		is_nextTurn = true;
 		Security.addProvider(new BouncyCastleProvider());
 		SecureRandom random = new SecureRandom();
 		Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
