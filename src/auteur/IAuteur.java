@@ -6,6 +6,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
@@ -31,9 +32,10 @@ public interface IAuteur {
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
+	 * @throws InvalidKeySpecException 
 	 */
 	void injectLetter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException,
-			SignatureException, DataLengthException, CryptoException, NoSuchProviderException;
+			SignatureException, DataLengthException, CryptoException, NoSuchProviderException, InvalidKeySpecException;
 
 	/**
 	 * Get a letter from letter_bag and prepare it for injection
@@ -47,9 +49,11 @@ public interface IAuteur {
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
+	 * @throws IOException 
+	 * @throws InvalidKeySpecException 
 	 */
 	JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, UnsupportedEncodingException,
-			InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException;
+			InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException, IOException, InvalidKeySpecException;
 
 	/**
 	 * Signs a message using Ed25519Signer
@@ -61,9 +65,12 @@ public interface IAuteur {
 	 * @throws UnsupportedEncodingException
 	 * @throws DataLengthException
 	 * @throws CryptoException
+	 * @throws IOException 
+	 * @throws InvalidKeySpecException 
+	 * @throws NoSuchProviderException 
 	 */
 	byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException,
-			UnsupportedEncodingException, DataLengthException, CryptoException;
+			UnsupportedEncodingException, DataLengthException, CryptoException, IOException, InvalidKeySpecException, NoSuchProviderException;
 
 	/**
 	 * Inform the server authority we're reading update regularly 
@@ -81,9 +88,10 @@ public interface IAuteur {
 	 * @throws SignatureException
 	 * @throws NoSuchProviderException
 	 * @throws CryptoException
+	 * @throws InvalidKeySpecException 
 	 */
 	void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException,
-			SignatureException, NoSuchProviderException, CryptoException;
+			SignatureException, NoSuchProviderException, CryptoException, InvalidKeySpecException;
 
 	/**
 	 * Get Full Letter Pool from Server
@@ -113,8 +121,9 @@ public interface IAuteur {
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
+	 * @throws InvalidKeySpecException 
 	 */
 	void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException,
-			IOException, DataLengthException, CryptoException, NoSuchProviderException;
+			IOException, DataLengthException, CryptoException, NoSuchProviderException, InvalidKeySpecException;
 
 }

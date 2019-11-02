@@ -4,4 +4,5 @@ module Scrabblos {
 	requires org.bouncycastle.provider;
 	requires gson;
 	requires org.json;
+	requires jdk.jartool;
 }
