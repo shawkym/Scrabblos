@@ -44,6 +44,8 @@ public class Scrabble implements Runnable {
 		System.out.println("Init Scrabble UI Client");	
 		this.dico =  dico;
 		this.politican = politican;
+		bot = new Player(this, "Scrabble Miner", true);
+		user = new Player(this, "Politician " + politican.id , false);
 	}
 
 	public TileBag getTileBag() {
@@ -60,10 +62,10 @@ public class Scrabble implements Runnable {
 		board = new Board(this);
 		board.complete_board(this);
 		
-		user = new Player(this, "Josef", false);
+	
 		user.letterRack = new LetterRack(user);
 		
-		bot = new Player(this, "ScrabbleBot", true);
+
 		bot.letterRack = new LetterRack(bot);
 		
 		JFrame f = new JFrame("Tom Brennan's ScrabbleBot");

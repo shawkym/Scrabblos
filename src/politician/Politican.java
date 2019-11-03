@@ -70,7 +70,7 @@ public class Politican implements Runnable, IPolitician {
 	public Set<String> dictionary;
 	//public Trie trie;
 	private long period;
-	private int id;
+	public int id;
 	private Block block;
 	private TileBag tileBag;
 	private static int next_Politician_id = 0;

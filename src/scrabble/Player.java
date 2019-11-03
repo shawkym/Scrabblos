@@ -32,6 +32,9 @@ public class Player {
 		nameLabel.setFont(new Font("Calibri", 1, 30));
 		nameLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		display.add(nameLabel, BorderLayout.WEST);
+		if(isAI == false)
+			scoreLabel = new JLabel("Using Miner");
+		else
 		scoreLabel = new JLabel("Score: " + Score);
 		scoreLabel.setFont(new Font("Calibri", 1, 30));
 		display.add(scoreLabel, BorderLayout.EAST);

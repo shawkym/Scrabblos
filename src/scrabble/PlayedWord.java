@@ -1,10 +1,13 @@
 package scrabble;
 
 class PlayedWord{
+	
     @Override
+    
     public String toString() {
         return "PlayedWord [word=" + word + ", score=" + score + "]";
     }
+    
     public PlayedWord(String word, int score) {
         this.word = word;
         this.score = score;
