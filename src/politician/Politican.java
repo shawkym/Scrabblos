@@ -38,11 +38,16 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import MerkleTree.MerkleHash;
+import MerkleTree.MerkleProofHash;
+import MerkleTree.MerkleTree;
 import auteur.Auteur;
 import scrabble.Dictionary;
 import scrabble.Scrabble;
@@ -69,6 +74,7 @@ public class Politican implements Runnable {
 	// Logic;
 	public ArrayList<Character> tileBagLetters;
 	public ArrayList<Letter> letterBag;
+	public ArrayList<Word> wordBag;
 	public ArrayList<Character> letterPool;
 	public Set<String> dictionary;
 	//public Trie trie;
@@ -78,6 +84,8 @@ public class Politican implements Runnable {
 	private TileBag tileBag;
 	private static int next_Politician_id = 0;
 	private Scrabble scrbl;
+	private MerkleHash rootHash;
+	private MerkleTree blockchain;
 	/**
 	 * Creates a new client and generates random keys
 	 * @throws UnknownHostException
@@ -107,6 +115,9 @@ public class Politican implements Runnable {
 		scrbl =  new Scrabble(new Dictionary(),this);
 		tileBag = new TileBag(scrbl);
 		scrbl.setTileBag(tileBag);
+		wordBag = new ArrayList<Word>();
+		blockchain = new MerkleTree();
+		rootHash = new MerkleHash();
 	}
 
 
@@ -180,8 +191,11 @@ public class Politican implements Runnable {
 	/**
 	 * Parse full word pool
 	 * @param word pool as json
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
 	 */
-	private void parseFullWordPool(JSONObject o) {
+	private void parseFullWordPool(JSONObject o) throws JsonParseException, JsonMappingException, IOException {
 		JSONObject j = (JSONObject) o.get("full_wordpool");
 		Integer fperiod = (Integer) j.get("current_period");
 		period = Long.parseLong(fperiod.toString());
@@ -192,6 +206,10 @@ public class Politican implements Runnable {
 		{
 			JsonObject word = (JsonObject) ((JsonArray)l).get(1);
 			letterPool.add(word.get("letter").getAsCharacter());
+			Word w = new Word(word);
+			//blockchain
+			wordBag.add(w);
+
 		}
 	}
 
@@ -208,8 +226,11 @@ public class Politican implements Runnable {
 	/**
 	 * Parse letter_pool message 
 	 * @param letterPool JSONObject contatining message 
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
 	 */
-	private void parseLetterPool(JSONObject x) {
+	private void parseLetterPool(JSONObject x) throws JsonParseException, JsonMappingException, IOException {
 		JSONObject j = (JSONObject) x.get("full_letterpool");
 		Integer fperiod = (Integer) j.get("current_period");
 		period = Long.parseLong(fperiod.toString());
@@ -221,6 +242,7 @@ public class Politican implements Runnable {
 			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
 			int s = Letter.getScore(o.get("letter").getAsCharacter());
 			tileBag.AddTile((o.get("letter").getAsCharacter()), s);
+			letterBag.add(new Letter(o));
 		}
 	}
 
@@ -327,7 +349,7 @@ public class Politican implements Runnable {
 		block.setWord(word);
 		block.generate();
 		block.sign(privateKey,publicKey);
-		
+
 		JSONObject obj = new JSONObject();
 		obj.put("inject_word",block.getData());
 		String msg = obj.toString();
@@ -399,7 +421,7 @@ public class Politican implements Runnable {
 		try {
 			injectWord(w);
 			if(last_block_now_official())
-			return true;
+				return true;
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | IOException | InvalidKeyException | DataLengthException | SignatureException | InvalidKeySpecException | CryptoException e) {
 			e.printStackTrace();
 		}
@@ -412,7 +434,23 @@ public class Politican implements Runnable {
 	 * @return
 	 */
 	private boolean last_block_now_official() {
-		// TODO Wu consensus politicians
+
+		String s = "";
+		for (Letter c : block.getWord().mot) {
+			s+= c.getLetter();
+		}
+		//cree le merckle tree avec un hash
+		MerkleTree tmp = new MerkleTree();
+		MerkleHash l1 = MerkleHash.create(s);
+		tmp.appendLeaf(l1);
+		tmp.buildTree();
+		//merge avec b2 qui doit contient toutes les precedents hash
+		//afin obtenir un roothash
+		rootHash = blockchain.addTree(tmp);
+		//test si roothash verifier l1 
+		List<MerkleProofHash> auditTrail = tmp.auditProof(l1);
+		boolean is_verif =  MerkleTree.verifyAudit(rootHash, l1, auditTrail); 
+		System.out.println(is_verif);
 		return true;
 	}
 }

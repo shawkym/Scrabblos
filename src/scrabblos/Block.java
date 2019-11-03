@@ -30,7 +30,8 @@ public class Block {
 		this.head = Utils.hash("");
 		this.previous = null;
 		this.data = new JSONObject();
-	}
+		this.word = null;
+}
 
 	public Block(JSONObject data, Block previous) throws NoSuchAlgorithmException, NoSuchProviderException {
 		if (previous !=null && previous.getData() !=null) {
