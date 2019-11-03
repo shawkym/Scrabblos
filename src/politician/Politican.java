@@ -2,15 +2,11 @@ package politician;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
@@ -19,10 +15,7 @@ import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
-import java.util.Scanner;
 import java.util.Set;
-import java.util.Stack;
 
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.CryptoException;
@@ -42,14 +35,15 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import MerkleTree.MerkleHash;
+import MerkleTree.MerkleProofHash;
+import MerkleTree.MerkleTree;
 import auteur.Auteur;
 import scrabble.Dictionary;
 import scrabble.Scrabble;
-import scrabble.Tile;
 import scrabble.TileBag;
 import scrabblos.Block;
 import scrabblos.Letter;
-import scrabblos.Utils;
 import scrabblos.Word;
 
 public class Politican implements Runnable {
@@ -71,6 +65,11 @@ public class Politican implements Runnable {
 	public ArrayList<Character> letterPool;
 	public Set<String> dictionary;
 	//public Trie trie;
+	
+	public MerkleTree blockchain;
+	public MerkleTree blockchain2;
+	MerkleHash rootHash;
+	
 	private long period;
 	public int id;
 	private Block block;
@@ -106,6 +105,10 @@ public class Politican implements Runnable {
 		scrbl =  new Scrabble(new Dictionary(),this);
 		tileBag = new TileBag(scrbl);
 		scrbl.setTileBag(tileBag);
+		
+		blockchain = new MerkleTree();
+		blockchain2 = new MerkleTree();
+		rootHash = new MerkleHash();
 	}
 
 
@@ -127,8 +130,6 @@ public class Politican implements Runnable {
 		signer.update(message.getBytes(), 0, message.length());
 		byte[] signature = signer.generateSignature();
 		return signature;
-		//String actualSignature = Base64.getEncoder().encodeToString(signature);
-		//return actualSignature;
 	}
 
 	/**
@@ -165,7 +166,6 @@ public class Politican implements Runnable {
 		String s = new String(cbuf,"UTF-8");
 		System.out.println("Politician "+id+" Got "+s);
 		JSONObject o = new JSONObject(s);
-		//JsonObject myo =  (JsonObject) new JsonParser().parse(s);
 		if (s.contains("full_letterpool"))
 			parseLetterPool(o);
 		if (s.contains("next_turn"))
@@ -320,6 +320,7 @@ public class Politican implements Runnable {
 		block = new Block(b);
 		block.setWord(word);
 		block.generate(privateKey,publicKey);
+		
 		JSONObject obj = new JSONObject();
 		obj.put("get_full_wordpool",block.getData());
 		String msg = obj.toString();
@@ -364,7 +365,7 @@ public class Politican implements Runnable {
 	 * New Word discovered by Miner
 	 * Called by Miner to start word injection
 	 * @param word
-	 * @return true if word became offical
+	 * @return true if word became official
 	 */
 	public boolean injectWordbyAI(String word) {
 
@@ -405,6 +406,17 @@ public class Politican implements Runnable {
 	 */
 	private boolean last_block_now_official() {
 		// TODO Wu consensus politicians
-		return true;
+		
+		String s = "";
+		for (Letter c : block.getWord().mot) {
+			s+= c.getLetter();
+		}
+		MerkleHash l1 = MerkleHash.create(s);
+		blockchain.appendLeaf(l1);
+		blockchain.buildTree();
+		
+		rootHash = blockchain2.addTree(blockchain);
+		List<MerkleProofHash> auditTrail = blockchain.auditProof(l1);
+        return MerkleTree.verifyAudit(rootHash, l1, auditTrail);     	
 	}
 }

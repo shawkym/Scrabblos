@@ -7,10 +7,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
-
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.util.encoders.Base64;
-import org.bouncycastle.util.encoders.Encoder;
 
 public class Utils {
 

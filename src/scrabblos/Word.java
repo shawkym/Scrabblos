@@ -3,7 +3,7 @@ package scrabblos;
 import java.util.ArrayList;
 
 public class Word {
-	private final ArrayList<Letter> mot;
+	public final ArrayList<Letter> mot;
 	
 	public Word(ArrayList<Letter> mot) {
 		this.mot = mot;

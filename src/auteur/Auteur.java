@@ -1,12 +1,8 @@
 package auteur;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -15,7 +11,6 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.SignatureException;
@@ -23,8 +18,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Random;
 
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.CryptoException;
@@ -36,7 +29,6 @@ import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.encoders.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -69,10 +61,8 @@ public class Auteur implements Runnable, IAuteur {
 	private int id;
 	private Block block;
 	private static int next_auteur_id = 0;
-	boolean is_nextTurn = true;
 	/**
 	 * Creates a new client and generates random keys
-	 * @param is_nextTurn 
 	 * @throws UnknownHostException
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
@@ -82,7 +72,6 @@ public class Auteur implements Runnable, IAuteur {
 		socket = new Socket(server, port);
 		id = next_auteur_id++;
 		period = 0;		
-		is_nextTurn = true;
 		Security.addProvider(new BouncyCastleProvider());
 		SecureRandom random = new SecureRandom();
 		Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
@@ -172,7 +161,7 @@ public class Auteur implements Runnable, IAuteur {
 		JSONObject letter = new JSONObject();
 		letter.put("letter", c);
 		letter.put("period", period);
-		letter.put("head",  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+		letter.put("head",  block.getHash());
 		letter.put("author", Utils.bytesToHex(publicKey.getEncoded()));
 		ByteBuffer bb = ByteBuffer.allocate(8096);
 		bb.putChar(c);
@@ -180,7 +169,6 @@ public class Auteur implements Runnable, IAuteur {
 		bb.put(("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855").getBytes("UTF-8"));
 		bb.put(publicKey.getEncoded());
 		bb.order(ByteOrder.BIG_ENDIAN);
-		//String s = Utils.hash(Utils.StringToBinairy(c.toString())+Utils.StringToBinairy(new String(bb.array())+Utils.StringToBinairy(Utils.hash(""))+asymmetricCipherKeyPair.getPublic());
 		MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
 		String f = new String (md.digest(bb.array()),"UTF-8");
 		byte[] sig = signMessage(f);
@@ -208,8 +196,6 @@ public class Auteur implements Runnable, IAuteur {
 		signer.update(message.getBytes(), 0, message.length());
 		byte[] signature = signer.generateSignature();
 		return signature;
-		//String actualSignature = Base64.getEncoder().encodeToString(signature);
-		//return actualSignature;
 	}
 
 	/**
@@ -359,12 +345,12 @@ public class Auteur implements Runnable, IAuteur {
 		}
 	}
 
-	public PrivateKey readPrivateKey() throws IOException {
-		InputStream inputStream = new ByteArrayInputStream(Base64.toBase64String(privateKey2.getEncoded()).getBytes());
-		BufferedInputStream fis=new BufferedInputStream(inputStream);
-		
-		return (PrivateKey)PrivateKeyInfo.getInstance(new ASN1InputStream(fis).readObject());
-	}
+//	public PrivateKey readPrivateKey() throws IOException {
+//		InputStream inputStream = new ByteArrayInputStream(Base64.toBase64String(privateKey2.getEncoded()).getBytes());
+//		BufferedInputStream fis=new BufferedInputStream(inputStream);
+//		
+//		return (PrivateKey)PrivateKeyInfo.getInstance(new ASN1InputStream(fis).readObject());
+//	}
 
 
 	/**
@@ -380,48 +366,6 @@ public class Auteur implements Runnable, IAuteur {
 	 * @throws IOException
 	 */
 	public static void main(String[] args) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, DataLengthException, CryptoException, UnknownHostException, IOException {
-		/*
-		Security.addProvider(new BouncyCastleProvider());
-		SecureRandom random = new SecureRandom();
-		Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
-		keyPairGenerator.init(new Ed25519KeyGenerationParameters(random));
-		AsymmetricCipherKeyPair asymmetricCipherKeyPair = keyPairGenerator.generateKeyPair();
-		CipherParameters privateKey =  asymmetricCipherKeyPair.getPrivate();
-		Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) asymmetricCipherKeyPair.getPublic();
-		String ss = Utils.getHexKey(publicKey);
-		ss.toString();
-
-		String s1 = Utils.hash(Utils.StringToBinairy("a")+Long.toBinaryString(0)+Utils.hash("")+"b7b597e0d64accdb6d8271328c75ad301c29829619f4865d31cc0c550046a08f");
-		//		System.out.println(s1);
-		//		Ed25519Signer signer = null;
-		//		signer.init(true, publicKey);
-		//		Signature signer = Signature.getInstance("SHA256",BouncyCastleProvider.PROVIDER_NAME);
-		//		signer.initVerify((PublicKey) asymmetricCipherKeyPair.getPublic());
-		//		signer.update(data);
-		//		return signer.verify(sig);
-		//		String s = Utils.getHexKey(asymmetricCipherKeyPair.getPublic());
-
-		// algorithm is pure Ed25519
-		/*
-		Signature sig = Signature.getInstance("SHA256WithDSA");
-		sig.initSign(asymmetricCipherKeyPair.getPrivate());
-		sig.update(s1.getBytes());
-		byte[] s = sig.sign();
-		String signature = Utils.bytesToHex(s);
-		System.out.println(s.toString());
-
-		// Generate new signature
-		Signer signer = new Ed25519Signer();
-		signer.init(true, privateKey);
-		signer.update(s1.getBytes(), 0, s1.length());
-		byte[] signature = signer.generateSignature();
-		var actualSignature = Base64.getUrlEncoder().encodeToString(signature).replace("=", "");
-
-		//System.out.println("Expected signature: {}", expectedSig);
-		System.out.println("Actual signature  : {}"+actualSignature);
-
-		//assertEquals(expectedSig, actualSignature);	
-		 */
 		new Thread(new Auteur()).start();
 		new Thread(new Auteur()).start();
 	}
