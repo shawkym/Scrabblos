@@ -50,8 +50,9 @@ import scrabble.TileBag;
 import scrabblos.Block;
 import scrabblos.Letter;
 import scrabblos.Utils;
+import scrabblos.Word;
 
-public class Politican implements Runnable, IPolitician {
+public class Politican implements Runnable {
 
 	// Network
 	private final static String server = "localhost";
@@ -65,7 +66,8 @@ public class Politican implements Runnable, IPolitician {
 	Ed25519PrivateKeyParameters privateKey = null;
 	Ed25519PublicKeyParameters publicKey = null;
 	// Logic;
-	public ArrayList<Character> letterBag;
+	public ArrayList<Character> tileBagLetters;
+	public ArrayList<Letter> letterBag;
 	public ArrayList<Character> letterPool;
 	public Set<String> dictionary;
 	//public Trie trie;
@@ -96,8 +98,9 @@ public class Politican implements Runnable, IPolitician {
 		block = new Block();
 		reader = new DataInputStream(socket.getInputStream());
 		writer = new DataOutputStream(socket.getOutputStream());
-		letterBag = new ArrayList<Character>();
+		tileBagLetters = new ArrayList<Character>();
 		letterPool = new ArrayList<Character>();
+		letterBag = new ArrayList<Letter>();
 		dictionary = new HashSet<String>();
 		//trie = new Trie(); 
 		scrbl =  new Scrabble(new Dictionary(),this);
@@ -105,67 +108,6 @@ public class Politican implements Runnable, IPolitician {
 		scrbl.setTileBag(tileBag);
 	}
 
-
-	/** 
-	 * Pseudo mine next block 
-	 * @throws IOException
-	 * @throws NoSuchAlgorithmException
-	 * @throws InvalidKeyException
-	 * @throws JSONException
-	 * @throws SignatureException
-	 * @throws DataLengthException
-	 * @throws CryptoException
-	 * @throws NoSuchProviderException
-	 */
-	@Override
-	public void injectLetter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
-		JSONObject data = new JSONObject();
-		JSONObject letter = getLetter();
-		data.put("inject_letter", letter);
-		String msg = data.toString();
-		System.out.println("Politician " + id + " "+ msg);
-		writer.writeLong(msg.length());
-		writer.write(msg.getBytes("UTF-8"),0,msg.length());
-		block = new Block(letter, block);
-	}
-
-	/**
-	 * Get a letter from letter_bag and prepare it for injection
-	 * and adds it to the current letter_pool
-	 * @return JSONObject containing a letter
-	 * @throws JSONException
-	 * @throws NoSuchAlgorithmException
-	 * @throws UnsupportedEncodingException
-	 * @throws InvalidKeyException
-	 * @throws SignatureException
-	 * @throws DataLengthException
-	 * @throws CryptoException
-	 * @throws NoSuchProviderException
-	 */
-	@Override
-	public JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException {
-		Random rand = new Random();
-		int alea = rand.nextInt(letterBag.size());
-		Character c = letterBag.remove(alea);
-		letterPool.add(c);
-		JSONObject letter = new JSONObject();
-		letter.put("letter", c);
-		letter.put("period", period);
-		letter.put("head",  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-		letter.put("author", Utils.bytesToHex(publicKey.getEncoded()));
-		ByteBuffer bb = ByteBuffer.allocate(8096);
-		bb.putChar(c);
-		bb.putLong(period);
-		bb.put(("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855").getBytes("UTF-8"));
-		bb.put(publicKey.getEncoded());
-		bb.order(ByteOrder.BIG_ENDIAN);
-		//String s = Utils.hash(Utils.StringToBinairy(c.toString())+Utils.StringToBinairy(new String(bb.array())+Utils.StringToBinairy(Utils.hash(""))+asymmetricCipherKeyPair.getPublic());
-		MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
-		String f = new String (md.digest(bb.array()),"UTF-8");
-		byte[] sig = signMessage(f);
-		letter.put("signature", Utils.bytesToHex(sig));
-		return letter;
-	}
 
 	/**
 	 * Signs a message using Ed25519Signer
@@ -178,7 +120,7 @@ public class Politican implements Runnable, IPolitician {
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 */
-	@Override
+
 	public byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, UnsupportedEncodingException, DataLengthException, CryptoException {
 		Signer signer = new Ed25519Signer();
 		signer.init(true, privateKey);
@@ -193,7 +135,7 @@ public class Politican implements Runnable, IPolitician {
 	 * Inform the server authority we're reading update regularly 
 	 * @throws IOException
 	 */
-	@Override
+
 	public void listen() throws IOException {
 		JSONObject data = new JSONObject();
 		data.put("listen",JSONObject.NULL);
@@ -215,7 +157,7 @@ public class Politican implements Runnable, IPolitician {
 	 * @throws NoSuchProviderException
 	 * @throws CryptoException
 	 */
-	@Override
+
 	public void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, NoSuchProviderException, CryptoException {
 		long taille_ans = reader.readLong();
 		byte [] cbuf = new byte[(int)taille_ans];
@@ -287,7 +229,7 @@ public class Politican implements Runnable, IPolitician {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	@Override
+
 	public boolean getFullLetterPool() throws IOException, JSONException {
 		JSONObject obj = new JSONObject();
 		obj.put("get_full_letterpool",JSONObject.NULL);
@@ -305,7 +247,7 @@ public class Politican implements Runnable, IPolitician {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	@Override
+
 	public boolean getLetterPoolSince(int p) throws IOException, JSONException {
 		JSONObject obj = new JSONObject();
 		obj.put("get_letterpool_since",p);
@@ -328,10 +270,10 @@ public class Politican implements Runnable, IPolitician {
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
 	 */
-	@Override
+
 	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
 		period = o.getInt("next_turn");
-		if (letterBag.isEmpty() || period > turn_limit)
+		if (tileBagLetters.isEmpty() || period > turn_limit)
 			return;
 	}
 
@@ -342,13 +284,10 @@ public class Politican implements Runnable, IPolitician {
 	public void run() {
 		System.out.println("Starting Scrabblos Politician Node " + id);
 		try {
-
-			//	registerOnServer();
 			listen();
 			getFullLetterPool();
 			getFullWordPool();
 			new Thread(scrbl).start();
-			injectWord();
 			while(true) {
 				read();
 			}
@@ -374,53 +313,21 @@ public class Politican implements Runnable, IPolitician {
 	 * Validate a word (block of letters)
 	 * @throws NoSuchProviderException 
 	 * @throws NoSuchAlgorithmException 
+	 * @throws IOException 
 	 */
-	private void injectWord() throws NoSuchAlgorithmException, NoSuchProviderException {
-		block = new Block();
-		List<List<String>> results = new ArrayList<List<String>>();
-		char[] priority = "KWXYZJQFHVBCPDGMAEILNORSTU".toLowerCase().toCharArray();
-		
-		//trie.findWords(trie.root,"f");
-		searchDictionary("fh",dictionary, new Stack<String>(), results);
-		for (List<String> result : results) {
-			for (String word : result) {
-				System.out.print(word + " ");
-			}
-			System.out.println("(" + result.size() + " words)");
-		}
+	private void injectWord(Word word) throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
+		Block b = block;
+		block = new Block(b);
+		block.setWord(word);
+		block.generate(privateKey,publicKey);
+		JSONObject obj = new JSONObject();
+		obj.put("get_full_wordpool",block.getData());
+		String msg = obj.toString();
+		long taille = msg.length();
+		writer.writeLong(taille);
+		writer.write(msg.getBytes("UTF-8"),0,(int)taille);
 	}
 
-	/**
-	 * Search similar words in Set Dict
-	 * @param input
-	 * @param dictionary
-	 * @param words
-	 * @param results
-	 */
-	public static void searchDictionary(String input, Set<String> dictionary,
-			Stack<String> words, List<List<String>> results) {
-
-		for (int i = 0; i < input.length(); i++) {
-			// take the first i characters of the input and see if it is a word
-			String substring = input.substring(0, i + 1);
-
-			if (dictionary.contains(substring)) {
-				// the beginning of the input matches a word, store on stack
-				words.push(substring);
-
-				if (i == input.length() - 1) {
-					// there's no input left, copy the words stack to results
-					results.add(new ArrayList<String>(words));
-				} else {
-					// there's more input left, search the remaining part
-					searchDictionary(input.substring(i + 1), dictionary, words, results);
-				}
-
-				// pop the matched word back off so we can move onto the next i
-				words.pop();
-			}
-		}
-	}
 
 	/**
 	 * Static Main for testing 
@@ -435,77 +342,69 @@ public class Politican implements Runnable, IPolitician {
 	 * @throws IOException
 	 */
 	public static void main(String[] args) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, DataLengthException, CryptoException, UnknownHostException, IOException {
-		/*
-		Security.addProvider(new BouncyCastleProvider());
-		SecureRandom random = new SecureRandom();
-		Ed25519KeyPairGenerator keyPairGenerator = new Ed25519KeyPairGenerator();
-		keyPairGenerator.init(new Ed25519KeyGenerationParameters(random));
-		AsymmetricCipherKeyPair asymmetricCipherKeyPair = keyPairGenerator.generateKeyPair();
-		CipherParameters privateKey =  asymmetricCipherKeyPair.getPrivate();
-		Ed25519PublicKeyParameters publicKey = (Ed25519PublicKeyParameters) asymmetricCipherKeyPair.getPublic();
-		String ss = Utils.getHexKey(publicKey);
-		ss.toString();
 
-		String s1 = Utils.hash(Utils.StringToBinairy("a")+Long.toBinaryString(0)+Utils.hash("")+"b7b597e0d64accdb6d8271328c75ad301c29829619f4865d31cc0c550046a08f");
-		//		System.out.println(s1);
-		//		Ed25519Signer signer = null;
-		//		signer.init(true, publicKey);
-		//		Signature signer = Signature.getInstance("SHA256",BouncyCastleProvider.PROVIDER_NAME);
-		//		signer.initVerify((PublicKey) asymmetricCipherKeyPair.getPublic());
-		//		signer.update(data);
-		//		return signer.verify(sig);
-		//		String s = Utils.getHexKey(asymmetricCipherKeyPair.getPublic());
-
-		// algorithm is pure Ed25519
-		/*
-		Signature sig = Signature.getInstance("SHA256WithDSA");
-		sig.initSign(asymmetricCipherKeyPair.getPrivate());
-		sig.update(s1.getBytes());
-		byte[] s = sig.sign();
-		String signature = Utils.bytesToHex(s);
-		System.out.println(s.toString());
-
-		// Generate new signature
-		Signer signer = new Ed25519Signer();
-		signer.init(true, privateKey);
-		signer.update(s1.getBytes(), 0, s1.length());
-		byte[] signature = signer.generateSignature();
-		var actualSignature = Base64.getUrlEncoder().encodeToString(signature).replace("=", "");
-
-		//System.out.println("Expected signature: {}", expectedSig);
-		System.out.println("Actual signature  : {}"+actualSignature);
-
-		//assertEquals(expectedSig, actualSignature);	
-		 */
 		new Thread(new Auteur()).start();
 		new Thread(new Auteur()).start();
 		Politican p = new Politican();
 		new Thread(p).start();
-		
-		//new Thread(p).start();
-	//	new Thread(new Politican()).start();
-	
+
 	}
 
-
-	@Override
-	public void registerOnServer() throws IOException {
-		// TODO Auto-generated method stub
-		
-	}
-
+	/**
+	 * Remine with current letterpool
+	 */
 	public void findnew()
 	{
 		scrbl.resetInstance();
 		scrbl.setTileBag(tileBag);
 		scrbl.mine();
 	}
+
+	/**
+	 * New Word discovered by Miner
+	 * Called by Miner to start word injection
+	 * @param word
+	 * @return true if word became offical
+	 */
 	public boolean injectWordbyAI(String word) {
-		
-		if(true)
+
+		ArrayList<Letter> mbag = new ArrayList<Letter>();
+		ArrayList<byte[]> authors_added = new ArrayList<byte[]>();
+
+		for (char c : word.toCharArray())
 		{
-			return true;
+			for (Letter b : letterBag)
+			{
+				if (authors_added.contains(b.getAuthor()))
+				{
+					continue;
+				}
+				if (b.getLetter() == c)
+				{
+					mbag.add(b);
+					authors_added.add(b.getAuthor());
+				}
+			}
 		}
-	return false;
+		Word w = new Word(mbag);
+
+		try {
+			injectWord(w);
+			if(last_block_now_official())
+			return true;
+		} catch (NoSuchAlgorithmException | NoSuchProviderException | IOException e) {
+			e.printStackTrace();
+		}
+
+		return false;
+	}
+
+	/**
+	 * See if injected word is taken by all servers
+	 * @return
+	 */
+	private boolean last_block_now_official() {
+		// TODO Wu consensus politicians
+		return true;
 	}
 }

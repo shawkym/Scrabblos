@@ -16,6 +16,33 @@ public class Letter {
 		this.signature = signature;
 		
 	}
+	
+	
+	public char getLetter() {
+		return letter;
+	}
+
+
+	public int getPeriod() {
+		return period;
+	}
+
+
+	public byte[] getHead() {
+		return head;
+	}
+
+
+	public byte[] getAuthor() {
+		return author;
+	}
+
+
+	public byte[] getSignature() {
+		return signature;
+	}
+
+
 	/**
 	 * 	Calculate Scrabble French Char Score
 	 *     
