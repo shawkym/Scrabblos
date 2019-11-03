@@ -144,14 +144,15 @@ public class HumanMove implements Constants {
 		ArrayList<PlayedWord> newWords = wc.getNewWords();
 		
 		for (PlayedWord word : newWords){
-			
+			if(!game.politican.injectWordbyAI(word.word))
+				continue;
 			if (!Dictionary.bigTrie.searchWord(word.word)){
 				game.log.append("??? '" + word.word + "' ??? !\n");
 			}
 			
 			int score = word.score;//Dictionary.getWordScore(word.);
 			
-			game.log.append(player.name + " plays the word " + word.word + " for " + score + " points\n");
+			game.log.append(player.name + " mines the word " + word.word + " for " + score + " points\n");
 			
 			player.awardPoints(score);
 		}

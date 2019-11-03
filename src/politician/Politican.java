@@ -333,7 +333,6 @@ public class Politican implements Runnable, IPolitician {
 		period = o.getInt("next_turn");
 		if (letterBag.isEmpty() || period > turn_limit)
 			return;
-		injectLetter();
 	}
 
 	/**
@@ -495,8 +494,18 @@ public class Politican implements Runnable, IPolitician {
 		
 	}
 
-
-	public void injectWordbyAI(ArrayList<Tile> bestWord) {
-	
+	public void findnew()
+	{
+		scrbl.resetInstance();
+		scrbl.setTileBag(tileBag);
+		scrbl.mine();
+	}
+	public boolean injectWordbyAI(String word) {
+		
+		if(true)
+		{
+			return true;
+		}
+	return false;
 	}
 }

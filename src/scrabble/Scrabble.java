@@ -39,6 +39,7 @@ public class Scrabble implements Runnable {
 	JCheckBox enforeDictionary;
 	Dictionary dico;
 	public Politican politican;
+	
 	public Scrabble(Dictionary dico, Politican politican)
 	{
 		System.out.println("Init Scrabble UI Client");	
@@ -55,27 +56,37 @@ public class Scrabble implements Runnable {
 		this.tileBag = tileBag;
 	}
 
-
-	void buildUI(){
+	public void resetInstance()
+	{
+		board = new Board(this);
+		board.complete_board(this);
+		
+		user.letterRack = new LetterRack(user);
+		bot.letterRack = new LetterRack(bot);
+	
+	}
+	
+	public void mine()
+	{
+		ai.makeFirstMove();
+	}
+	
+	public void buildUI(){
 		JPanel eastPanel = drawEastPanel();
 		//PlayerTiles = new ArrayList<Tile>();
 		board = new Board(this);
 		board.complete_board(this);
 		
-	
 		user.letterRack = new LetterRack(user);
-		
-
 		bot.letterRack = new LetterRack(bot);
 		
-		JFrame f = new JFrame("Tom Brennan's ScrabbleBot");
+		JFrame f = new JFrame("Scrabblos Politician " + politican.id + " Based on Tom Brennan's ScrabbleBot");
 
-		
 		drawMainFrame(bot, f, board, eastPanel);
 
 	}
 
-	public  void beginGame() {
+	public void beginGame() {
 
 		buildUI();
 		ai = new AI(bot);

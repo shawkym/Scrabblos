@@ -19,7 +19,7 @@ public class AI implements Constants {
 		
 		bestWord = new ArrayList<>();
 		getStartingWord( bot.letterRack.tiles , bestWord, "", 0);
-		game.politican.injectWordbyAI(bestWord);
+		//game.politican.injectWordbyAI(bestWord);
 		if (maxScore == 0){
 			System.err.println("ai couldnt move with starting tiles \n" + bot.letterRack.toString() );
 			bot.swapTiles();
