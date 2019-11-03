@@ -411,11 +411,14 @@ public class Politican implements Runnable {
 		for (Letter c : block.getWord().mot) {
 			s+= c.getLetter();
 		}
+		//cree le merckle tree avec un hash
 		MerkleHash l1 = MerkleHash.create(s);
 		blockchain.appendLeaf(l1);
 		blockchain.buildTree();
-		
+		//merge avec b2 qui doit contient toutes les precedents hash
+		//afin obtenir un roothash
 		rootHash = blockchain2.addTree(blockchain);
+		//test si roothash verifier l1 
 		List<MerkleProofHash> auditTrail = blockchain.auditProof(l1);
         return MerkleTree.verifyAudit(rootHash, l1, auditTrail);     	
 	}
