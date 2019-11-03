@@ -5,7 +5,8 @@ import java.util.HashMap;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public class Letter {
 	private final char letter;
@@ -24,11 +25,12 @@ public class Letter {
 		
 	}
 	
-	public Letter(String data) throws JsonParseException, JsonMappingException, IOException {
-		HashMap<String,Object> map =
-		        new ObjectMapper().readValue(data, HashMap.class);
-		this.letter = (char) map.get("letter");
-		this.period = (int) map.get("period");
+	public Letter(JsonObject data) throws JsonParseException, JsonMappingException, IOException {
+		HashMap<String, Object> map = new Gson().fromJson(data.toString(), HashMap.class);
+		String s = (String) map.get("letter");
+		this.letter = s.charAt(0);
+		Double v = (Double) map.get("period");
+		this.period = v.intValue();
 		this.head = (String) map.get("head");
 		this.author = (String) map.get("author");
 		this.signature = (String) map.get("signature");

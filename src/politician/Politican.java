@@ -224,9 +224,7 @@ public class Politican implements Runnable {
 			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
 			int s = Letter.getScore(o.get("letter").getAsCharacter());
 			tileBag.AddTile((o.get("letter").getAsCharacter()), s);
-			
-			System.out.println(l.toString().substring(l.toString().indexOf("{"), l.toString().length()-1));
-			letterBag.add(new Letter(l.toString().substring(l.toString().indexOf("{"), l.toString().length()-1)));
+			letterBag.add(new Letter(o));
 			
 		}
 	}
