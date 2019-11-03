@@ -1,14 +1,22 @@
 package scrabblos;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 
-
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.CryptoException;
+import org.bouncycastle.crypto.DataLengthException;
+import org.bouncycastle.crypto.Signer;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.signers.Ed25519Signer;
 import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.encoders.Encoder;
 
@@ -60,5 +68,27 @@ public class Utils {
 		return res.substring(0, 63);
 	}
 	
-	
+	/**
+	 * Signs a message using Ed25519Signer
+	 * @param privateKey 
+	 * @param  a message to sign
+	 * @return array of bytes containing digital signature
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeyException
+	 * @throws SignatureException
+	 * @throws DataLengthException
+	 * @throws CryptoException
+	 * @throws IOException 
+	 * @throws InvalidKeySpecException 
+	 * @throws NoSuchProviderException 
+	 */
+	static public byte[] signMessage(String message, CipherParameters privateKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, IOException, InvalidKeySpecException, NoSuchProviderException {
+		Signer signer = new Ed25519Signer();
+		signer.init(true, privateKey);
+		signer.update(message.getBytes(), 0, message.length());
+		byte[] signature = signer.generateSignature();
+		return signature;
+		//String actualSignature = Base64.getEncoder().encodeToString(signature);
+		//return actualSignature;
+	}
 }

@@ -203,13 +203,7 @@ public class Auteur implements Runnable, IAuteur {
 	 */
 	@Override
 	public byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, DataLengthException, CryptoException, IOException, InvalidKeySpecException, NoSuchProviderException {
-		Signer signer = new Ed25519Signer();
-		signer.init(true, privateKey);
-		signer.update(message.getBytes(), 0, message.length());
-		byte[] signature = signer.generateSignature();
-		return signature;
-		//String actualSignature = Base64.getEncoder().encodeToString(signature);
-		//return actualSignature;
+			return Utils.signMessage(message, privateKey);
 	}
 
 	/**

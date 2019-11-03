@@ -1,8 +1,19 @@
 package scrabblos;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Collection;
 
+import org.bouncycastle.crypto.CryptoException;
+import org.bouncycastle.crypto.DataLengthException;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 import org.json.JSONObject;
@@ -18,7 +29,7 @@ public class Block {
 	public Block() throws NoSuchAlgorithmException, NoSuchProviderException {
 		this.head = Utils.hash("");
 		this.previous = null;
-		this.data = null;
+		this.data = new JSONObject();
 	}
 	
 	public Block(JSONObject data, Block previous) throws NoSuchAlgorithmException, NoSuchProviderException {
@@ -80,9 +91,34 @@ public class Block {
 		this.word = word;
 	}
 
-	public void generate(Ed25519PrivateKeyParameters privateKey, Ed25519PublicKeyParameters publicKey) {
-		// TODO Wu generate les json de tous les lettre dans le mots
-		// et faire signer
-		
+	public void generate() {
+		for(Letter l : word.getMot())
+		{
+		JSONObject letter = new JSONObject();
+		letter.put("letter", l.getLetter());
+		letter.put("period", l.getPeriod());
+		letter.put("head",  l.getHead());
+		letter.put("author", l.getAuthor());
+		letter.put("signature", l.getSignature());
+		data.put("word",letter);
+		}
+	}
+
+	public void sign(Ed25519PrivateKeyParameters privateKey, Ed25519PublicKeyParameters publicKey) throws InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, NoSuchProviderException, CryptoException, IOException {;
+		data.put("head", getNewHead());
+		data.put("author", Utils.bytesToHex(publicKey.getEncoded()));
+		ByteBuffer bb = ByteBuffer.allocate(8096);
+		bb.put(getNewHead().getBytes("UTF-8"));
+		bb.put(publicKey.getEncoded());
+		bb.order(ByteOrder.BIG_ENDIAN);
+		MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
+		String f = new String (md.digest(bb.array()),"UTF-8");
+		byte[] sig = Utils.signMessage(f,privateKey);
+		data.put("signature", Utils.bytesToHex(sig));
+	}
+
+	private String getNewHead() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

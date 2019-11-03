@@ -16,6 +16,7 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -314,14 +315,20 @@ public class Politican implements Runnable {
 	 * @throws NoSuchProviderException 
 	 * @throws NoSuchAlgorithmException 
 	 * @throws IOException 
+	 * @throws CryptoException 
+	 * @throws InvalidKeySpecException 
+	 * @throws SignatureException 
+	 * @throws DataLengthException 
+	 * @throws InvalidKeyException 
 	 */
-	private void injectWord(Word word) throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
+	private void injectWord(Word word) throws NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, CryptoException {
 		Block b = block;
 		block = new Block(b);
 		block.setWord(word);
-		block.generate(privateKey,publicKey);
+		block.generate();
+		block.sign(privateKey,publicKey);
 		JSONObject obj = new JSONObject();
-		obj.put("get_full_wordpool",block.getData());
+		obj.put("inject_word",block.getData());
 		String msg = obj.toString();
 		long taille = msg.length();
 		writer.writeLong(taille);
@@ -392,7 +399,7 @@ public class Politican implements Runnable {
 			injectWord(w);
 			if(last_block_now_official())
 			return true;
-		} catch (NoSuchAlgorithmException | NoSuchProviderException | IOException e) {
+		} catch (NoSuchAlgorithmException | NoSuchProviderException | IOException | InvalidKeyException | DataLengthException | SignatureException | InvalidKeySpecException | CryptoException e) {
 			e.printStackTrace();
 		}
 

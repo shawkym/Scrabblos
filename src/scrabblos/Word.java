@@ -23,4 +23,8 @@ public class Word {
 		}
 		return score;
 	}
+
+	public ArrayList<Letter> getMot() {
+		return mot;
+	}
 }
