@@ -11,33 +11,20 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Random;
 
-import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.DEROctetString;
-import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
-import org.bouncycastle.asn1.ocsp.Signature;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.CryptoException;
@@ -48,9 +35,8 @@ import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
-import org.bouncycastle.crypto.util.PrivateKeyInfoFactory;
-import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.encoders.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -58,7 +44,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.sun.jarsigner.ContentSigner;
 
 import scrabblos.Block;
 import scrabblos.Utils;
@@ -68,6 +53,7 @@ public class Auteur implements Runnable, IAuteur {
 	// Network
 	private final static String server = "localhost";
 	private final static int port = 12345;
+	private final int turn_limit = 100;
 	private Socket socket;
 	private DataInputStream reader;
 	private DataOutputStream writer;
@@ -348,7 +334,7 @@ public class Auteur implements Runnable, IAuteur {
 	@Override
 	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException, InvalidKeySpecException {
 		period = o.getInt("next_turn");
-		if (letterBag.isEmpty())
+		if (letterBag.isEmpty() || period > turn_limit)
 			return;
 		injectLetter();
 	}
@@ -374,7 +360,7 @@ public class Auteur implements Runnable, IAuteur {
 	}
 
 	public PrivateKey readPrivateKey() throws IOException {
-		InputStream inputStream = new ByteArrayInputStream(Base64.getEncoder().encode(privateKey2.getEncoded()));
+		InputStream inputStream = new ByteArrayInputStream(Base64.toBase64String(privateKey2.getEncoded()).getBytes());
 		BufferedInputStream fis=new BufferedInputStream(inputStream);
 		
 		return (PrivateKey)PrivateKeyInfo.getInstance(new ASN1InputStream(fis).readObject());

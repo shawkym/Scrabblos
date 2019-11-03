@@ -43,16 +43,20 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import auteur.Auteur;
+import scrabble.Dictionary;
+import scrabble.Scrabble;
+import scrabble.Tile;
+import scrabble.TileBag;
 import scrabblos.Block;
-import scrabblos.Trie;
+import scrabblos.Letter;
 import scrabblos.Utils;
-import scrabblos.Trie.TrieNode;
 
 public class Politican implements Runnable, IPolitician {
 
 	// Network
 	private final static String server = "localhost";
 	private final static int port = 12345;
+	private final int turn_limit = 100;
 	private Socket socket;
 	private DataInputStream reader;
 	private DataOutputStream writer;
@@ -64,11 +68,13 @@ public class Politican implements Runnable, IPolitician {
 	public ArrayList<Character> letterBag;
 	public ArrayList<Character> letterPool;
 	public Set<String> dictionary;
+	//public Trie trie;
 	private long period;
-	private int id;
+	public int id;
 	private Block block;
+	private TileBag tileBag;
 	private static int next_Politician_id = 0;
-
+	private Scrabble scrbl;
 	/**
 	 * Creates a new client and generates random keys
 	 * @throws UnknownHostException
@@ -93,43 +99,12 @@ public class Politican implements Runnable, IPolitician {
 		letterBag = new ArrayList<Character>();
 		letterPool = new ArrayList<Character>();
 		dictionary = new HashSet<String>();
-		Trie.root = new TrieNode(); 
-		Scanner filescan = new Scanner(new File("src/dict.txt"));
-		while (filescan.hasNext()) {
-			String line = filescan.nextLine().toLowerCase();
-			dictionary.add(line);
-			Trie.insert(line);
-		}
-		filescan.close();
-		
+		//trie = new Trie(); 
+		scrbl =  new Scrabble(new Dictionary(),this);
+		tileBag = new TileBag(scrbl);
+		scrbl.setTileBag(tileBag);
 	}
 
-
-	/** 
-	 * Register this client on server authority 
-	 * 
-	 * @throws IOException
-	 */
-	@Override
-	public void registerOnServer() throws IOException {
-		JSONObject data = new JSONObject();
-		String key = Utils.bytesToHex(publicKey.getEncoded());
-		data.put("register", key);
-		String msg = data.toString();
-		writer.writeLong(msg.length());
-		writer.write(msg.getBytes("UTF-8"),0,msg.length());
-		long taille = reader.readLong();
-		byte [] cbuf = new byte[(int)taille];
-		reader.read(cbuf, 0, (int)taille);
-		String s = new String(cbuf,"UTF-8");
-		System.out.println("Politician "+id+" receive "+s);
-
-		JsonObject x =  new JsonParser().parse(s).getAsJsonObject();
-		JsonArray array  =  (JsonArray) x.get("letters_bag");
-		for(JsonElement e : array) {
-			letterBag.add(e.getAsCharacter());
-		}
-	}
 
 	/** 
 	 * Pseudo mine next block 
@@ -301,7 +276,8 @@ public class Politican implements Runnable, IPolitician {
 		for (JsonElement l : letters.getAsJsonArray())
 		{
 			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
-			letterPool.add(o.get("letter").getAsCharacter());
+			int s = Letter.getScore(o.get("letter").getAsCharacter());
+			tileBag.AddTile((o.get("letter").getAsCharacter()), s);
 		}
 	}
 
@@ -355,9 +331,8 @@ public class Politican implements Runnable, IPolitician {
 	@Override
 	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
 		period = o.getInt("next_turn");
-		if (letterBag.isEmpty())
+		if (letterBag.isEmpty() || period > turn_limit)
 			return;
-		injectLetter();
 	}
 
 	/**
@@ -372,6 +347,7 @@ public class Politican implements Runnable, IPolitician {
 			listen();
 			getFullLetterPool();
 			getFullWordPool();
+			new Thread(scrbl).start();
 			injectWord();
 			while(true) {
 				read();
@@ -402,7 +378,9 @@ public class Politican implements Runnable, IPolitician {
 	private void injectWord() throws NoSuchAlgorithmException, NoSuchProviderException {
 		block = new Block();
 		List<List<String>> results = new ArrayList<List<String>>();
-		Trie.search("f");
+		char[] priority = "KWXYZJQFHVBCPDGMAEILNORSTU".toLowerCase().toCharArray();
+		
+		//trie.findWords(trie.root,"f");
 		searchDictionary("fh",dictionary, new Stack<String>(), results);
 		for (List<String> result : results) {
 			for (String word : result) {
@@ -499,11 +477,35 @@ public class Politican implements Runnable, IPolitician {
 
 		//assertEquals(expectedSig, actualSignature);	
 		 */
+		new Thread(new Auteur()).start();
+		new Thread(new Auteur()).start();
 		Politican p = new Politican();
-		p.injectWord();
+		new Thread(p).start();
+		
 		//new Thread(p).start();
 	//	new Thread(new Politican()).start();
-		//new Thread(new Auteur()).start();
-		//new Thread(new Auteur()).start();
+	
+	}
+
+
+	@Override
+	public void registerOnServer() throws IOException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void findnew()
+	{
+		scrbl.resetInstance();
+		scrbl.setTileBag(tileBag);
+		scrbl.mine();
+	}
+	public boolean injectWordbyAI(String word) {
+		
+		if(true)
+		{
+			return true;
+		}
+	return false;
 	}
 }
