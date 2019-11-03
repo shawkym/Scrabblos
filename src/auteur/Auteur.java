@@ -53,6 +53,7 @@ public class Auteur implements Runnable, IAuteur {
 	// Network
 	private final static String server = "localhost";
 	private final static int port = 12345;
+	private final int turn_limit = 100;
 	private Socket socket;
 	private DataInputStream reader;
 	private DataOutputStream writer;
@@ -333,7 +334,7 @@ public class Auteur implements Runnable, IAuteur {
 	@Override
 	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException, InvalidKeySpecException {
 		period = o.getInt("next_turn");
-		if (letterBag.isEmpty())
+		if (letterBag.isEmpty() || period > turn_limit)
 			return;
 		injectLetter();
 	}

@@ -60,7 +60,7 @@ public class Move {
 		
 		
 		//player.awardPoints(score);
-		HumanMove.execute(player);
+		player.game.board.hm.execute(player);
 		
 		//System.out.println(toString());
 		//Scrabble.log.append(this.toString());

@@ -8,15 +8,18 @@ public class AI implements Constants {
 	int maxScore ;
 	ArrayList<Tile> bestWord;
 	Anchor currentAnchor;
+	Scrabble game;
+	
 	public AI(Player bot) {
 		this.bot = bot;
+		game = bot.game;
 	}
 
 	boolean makeFirstMove(){
 		
 		bestWord = new ArrayList<>();
 		getStartingWord( bot.letterRack.tiles , bestWord, "", 0);
-		
+		game.politican.injectWordbyAI(bestWord);
 		if (maxScore == 0){
 			System.err.println("ai couldnt move with starting tiles \n" + bot.letterRack.toString() );
 			bot.swapTiles();
@@ -25,9 +28,14 @@ public class AI implements Constants {
 		}
 		
 		Move move = new Move(bestWord , 7 , 7 - (bestWord.size() / 2) , true , maxScore , bot);
-		move.execute(Board.getInstance().tileArr);
+		move.execute(game.board.tileArr);
 		
-		bot.letterRack.refill();
+		try {
+			bot.letterRack.refill();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return true;
 		
 	}
@@ -56,10 +64,10 @@ public class AI implements Constants {
 			}
 			
 			Move move = new Move(bestWord , startRow , startCol ,currentAnchor.across, maxScore , bot);
-			move.execute(Board.getInstance().tileArr);
+			move.execute(game.board.tileArr);
 			//System.out.println(move.toString());
 			
-			Board.getInstance().repaint();
+			game.board.repaint();
 		}
 		return true;
 	}
@@ -122,35 +130,15 @@ public class AI implements Constants {
 	}
 	
 	boolean isValidPrefix(String prefix){
-		if (Scrabble.hardMode.isSelected()){
-			if (Dictionary.bigTrie.searchPrefix(prefix)){
+			if (Dictionary.bigTrie.searchPrefix(prefix))
 				return true;
-			} else {
-				return false;
-			}
-		} else {
-			if (Dictionary.smallTrie.searchPrefix(prefix)){
-				return true;
-			} else {
-				return false;
-			}
-		}
+			return false;
 	}
 	
 	boolean isValidWord(String word){
-		if (Scrabble.hardMode.isSelected()){
-			if (Dictionary.bigTrie.searchWord(word)){
+			if (Dictionary.bigTrie.searchWord(word))
 				return true;
-			} else {
-				return false;
-			}
-		} else {
-			if (Dictionary.smallTrie.searchWord(word)){
-				return true;
-			} else {
-				return false;
-			}
-		}
+			return false;
 	}
 	
 	void  getStartingWord(ArrayList<Tile> inputTiles, ArrayList<Tile> tilesToBeUsed, String currentWord, int score){
@@ -181,7 +169,7 @@ public class AI implements Constants {
 	
 	ArrayList<Anchor> findAnchors(){
 		ArrayList<Anchor> anchors = new ArrayList<Anchor>();
-		Tile[][] tileArr =  Board.getInstance().tileArr;
+		Tile[][] tileArr =  game.board.tileArr;
 		for (int row = 0 ; row < tileArr.length ; row ++){
 			for (int col = 0 ; col < tileArr[0].length ; col ++){
 				if (tileArr[row][col].letter != ' '){

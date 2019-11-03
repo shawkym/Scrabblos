@@ -16,23 +16,26 @@ import javax.swing.JPanel;
 public class Board extends Canvas implements Constants, Runnable{
 	
 
-	private static final long serialVersionUID = 1L;
-	private static final Board instance;
-	
-	static{ instance = new Board();}
-	
-	public static Board getInstance(){
-		return instance;
-	}
-	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7289966995713948935L;
+	private final Scrabble game;
 	JPanel boardCanvas;
-	Tile[][] tileArr;
+	public Tile[][] tileArr;
 	Canvas canvas;
 	private Image dbImage = null;
 	private Graphics dbg;
-	Board(){
+	public HumanMove hm;
+	
+	void complete_board(Scrabble game)
+	{
+		hm = new HumanMove(this.game);
+	}
+	Board(final Scrabble game){
 		//boardCanvas = new JPanel();
 
+		this.game = game;
 		//boardCanvas.setLayout(new GridLayout(BOARD_DIMENSIONS, BOARD_DIMENSIONS));
 		tileArr = new Tile[BOARD_DIMENSIONS][BOARD_DIMENSIONS];
 		
@@ -66,12 +69,12 @@ public class Board extends Canvas implements Constants, Runnable{
 	        		//cellPool[me.getX()/10][me.getY()/10].click();
 	        		if (tileArr[col][row].letter < 53){//tileArr[col][row].letter == ' ' || tileArr[col][row].letter >= '0' && tileArr[col][row].letter <= '4' ){
 	        			System.out.println("(blank)");
-	        			if (Scrabble.blueTile != null){
-	        				tileArr[col][row] = Scrabble.blueTile;
-	        				Scrabble.blueTile.setRed();
-	        				Scrabble.user.letterRack.tiles.remove(Scrabble.blueTile);
-	        				HumanMove.getInstance().add(new HumanAction(Scrabble.blueTile, col, row));
-	        				Scrabble.blueTile = null;
+	        			if (game.blueTile != null){
+	        				tileArr[col][row] = game.blueTile;
+	        				game.blueTile.setRed();
+	        				game.user.letterRack.tiles.remove(game.blueTile);
+	        				hm.getInstance().add(new HumanAction(game.blueTile, col, row));
+	        				game.blueTile = null;
 	        			}
 	        		} else {
 	        			System.out.println("'" + tileArr[col][row].letter + "'");
@@ -104,15 +107,15 @@ public class Board extends Canvas implements Constants, Runnable{
 	}
 	
 	void clickPlayerTiles(int tileClicked){
-		if (tileClicked < Scrabble.user.letterRack.tiles.size()){
+		if (tileClicked < game.user.letterRack.tiles.size()){
 		
-		Tile clickedTile = Scrabble.user.letterRack.tiles.get(tileClicked);
+		Tile clickedTile = game.user.letterRack.tiles.get(tileClicked);
 		
 		//System.out.println("playertiles " + clickedTile.letter) ;
-		if (Scrabble.blueTile != null){
-			Scrabble.blueTile.setNormal();
+		if (game.blueTile != null){
+			game.blueTile.setNormal();
 		}
-		Scrabble.blueTile = clickedTile;
+		game.blueTile = clickedTile;
 		clickedTile.setBlue();
 		}
 	}
@@ -164,8 +167,9 @@ public class Board extends Canvas implements Constants, Runnable{
 			for (int col = 0 ; col < tileArr[0].length ; col ++){
 				//g.fillRect(col * 50, row * 50, 48, 48);
 				//if (tileArr[row][col].redraw){
-				if (tileArr[row][col].letter == ' ' && BonusChecker.check(row, col) > 0){
-					dbg.drawImage(BonusChecker.findImage(row, col), col * 50, row * 50, null);
+				BonusChecker bc = new BonusChecker(tileArr);
+				if (tileArr[row][col].letter == ' ' && bc.check(row, col) > 0){
+					dbg.drawImage(bc.findImage(row, col), col * 50, row * 50, null);
 				} else { 
 					dbg.drawImage(tileArr[row][col].image , col * 50, row * 50, null);
 				}
@@ -181,10 +185,10 @@ public class Board extends Canvas implements Constants, Runnable{
 		dbg.setColor(new Color(0,100,0));
 		dbg.fillRect(0, 750, 750, 100);
 		dbg.setColor(Color.BLACK);
-		for (int i = 0 ; i < Scrabble.user.letterRack.tiles.size() ; i++ ){
-			System.err.println( i + " " + Scrabble.user.letterRack.tiles.size());
+		for (int i = 0 ; i < game.user.letterRack.tiles.size() ; i++ ){
+			System.err.println( i + " " + game.user.letterRack.tiles.size());
 			
-			dbg.drawImage(Scrabble.user.letterRack.tiles.get(i).image, 200 + (i*50), 775, null);
+			dbg.drawImage(game.user.letterRack.tiles.get(i).image, 200 + (i*50), 775, null);
 			dbg.drawRect(200 + (i*50) , 775, 50, 50);
 		}
     }

@@ -21,7 +21,9 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 
-public class Scrabble {
+import politician.Politican;
+
+public class Scrabble implements Runnable {
 
 	int turnCount;
 	JTextArea log;
@@ -29,20 +31,19 @@ public class Scrabble {
 	AI ai;
 	Player user;
 	Player bot;
+	Board board;
 	Tile blueTile;
 	TileBag tileBag;
 	ArrayList<PlayedWord> wordList;
 	JCheckBox hardMode;
 	JCheckBox enforeDictionary;
 	Dictionary dico;
-
-	public Scrabble(Dictionary dico)
+	public Politican politican;
+	public Scrabble(Dictionary dico, Politican politican)
 	{
-		System.out.println("begin scrabble");
-		tileBag = new TileBag(this);
-		//buildUI();
+		System.out.println("Init Scrabble UI Client");	
 		this.dico =  dico;
-		beginGame();
+		this.politican = politican;
 	}
 
 	public TileBag getTileBag() {
@@ -56,20 +57,25 @@ public class Scrabble {
 	void buildUI(){
 		JPanel eastPanel = drawEastPanel();
 		//PlayerTiles = new ArrayList<Tile>();
-
-		user = new Player("Josef", false);
-		bot = new Player("ScrabbleBot", true);
-
+		board = new Board(this);
+		board.complete_board(this);
+		
+		user = new Player(this, "Josef", false);
+		user.letterRack = new LetterRack(user);
+		
+		bot = new Player(this, "ScrabbleBot", true);
+		bot.letterRack = new LetterRack(bot);
+		
 		JFrame f = new JFrame("Tom Brennan's ScrabbleBot");
-		Board board = Board.getInstance();
 
+		
 		drawMainFrame(bot, f, board, eastPanel);
 
 	}
 
-	private  void beginGame() {
+	public  void beginGame() {
 
-
+		buildUI();
 		ai = new AI(bot);
 
 		wordList = new ArrayList<>();
@@ -82,7 +88,7 @@ public class Scrabble {
 
 		//Board.getInstance().print();
 
-		wordList = WordsOnBoard.getWordList();
+		wordList = new WordsOnBoard(this).getWordList();
 
 		//wordList.forEach(System.outprintln);
 
@@ -144,9 +150,9 @@ public class Scrabble {
 
 
 		JPanel four = new JPanel(new GridLayout(1, 2));
-		four.add(hardMode);
-		four.add(enforeDictionary);
-		enforeDictionary.setSelected(true);
+		//four.add(hardMode);
+		//four.add(enforeDictionary);
+		//enforeDictionary.setSelected(true);
 
 
 		controls.add(one);
@@ -155,5 +161,16 @@ public class Scrabble {
 		controls.add(four);
 
 		return controls;
+	}
+
+	@Override
+	public void run() {
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		beginGame();	
 	}
 }

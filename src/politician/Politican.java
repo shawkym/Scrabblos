@@ -45,6 +45,7 @@ import com.google.gson.JsonParser;
 import auteur.Auteur;
 import scrabble.Dictionary;
 import scrabble.Scrabble;
+import scrabble.Tile;
 import scrabble.TileBag;
 import scrabblos.Block;
 import scrabblos.Letter;
@@ -55,6 +56,7 @@ public class Politican implements Runnable, IPolitician {
 	// Network
 	private final static String server = "localhost";
 	private final static int port = 12345;
+	private final int turn_limit = 100;
 	private Socket socket;
 	private DataInputStream reader;
 	private DataOutputStream writer;
@@ -75,13 +77,12 @@ public class Politican implements Runnable, IPolitician {
 	private Scrabble scrbl;
 	/**
 	 * Creates a new client and generates random keys
-	 * @param b 
 	 * @throws UnknownHostException
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 * @throws NoSuchProviderException
 	 */
-	public Politican(Scrabble b) throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException {
+	public Politican() throws UnknownHostException, IOException, NoSuchAlgorithmException, NoSuchProviderException {
 		socket = new Socket(server, port);
 		id = next_Politician_id++;
 		period = 0;		
@@ -99,7 +100,7 @@ public class Politican implements Runnable, IPolitician {
 		letterPool = new ArrayList<Character>();
 		dictionary = new HashSet<String>();
 		//trie = new Trie(); 
-		this.scrbl = b;
+		scrbl =  new Scrabble(new Dictionary(),this);
 		tileBag = new TileBag(scrbl);
 		scrbl.setTileBag(tileBag);
 	}
@@ -330,7 +331,7 @@ public class Politican implements Runnable, IPolitician {
 	@Override
 	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
 		period = o.getInt("next_turn");
-		if (letterBag.isEmpty())
+		if (letterBag.isEmpty() || period > turn_limit)
 			return;
 		injectLetter();
 	}
@@ -347,6 +348,7 @@ public class Politican implements Runnable, IPolitician {
 			listen();
 			getFullLetterPool();
 			getFullWordPool();
+			new Thread(scrbl).start();
 			injectWord();
 			while(true) {
 				read();
@@ -476,14 +478,14 @@ public class Politican implements Runnable, IPolitician {
 
 		//assertEquals(expectedSig, actualSignature);	
 		 */
-		Scrabble b = new Scrabble(new Dictionary());
-		Politican p = new Politican(b);
+		new Thread(new Auteur()).start();
+		new Thread(new Auteur()).start();
+		Politican p = new Politican();
 		new Thread(p).start();
 		
 		//new Thread(p).start();
 	//	new Thread(new Politican()).start();
-		//new Thread(new Auteur()).start();
-		//new Thread(new Auteur()).start();
+	
 	}
 
 
@@ -491,5 +493,10 @@ public class Politican implements Runnable, IPolitician {
 	public void registerOnServer() throws IOException {
 		// TODO Auto-generated method stub
 		
+	}
+
+
+	public void injectWordbyAI(ArrayList<Tile> bestWord) {
+	
 	}
 }

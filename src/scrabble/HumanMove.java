@@ -11,21 +11,28 @@ import javax.swing.JOptionPane;
 
 public class HumanMove implements Constants {
 	
-	private static ArrayList<HumanAction> actionList;
-	static{
+	private  ArrayList<HumanAction> actionList;
+	Scrabble game;
+	private WordsOnBoard wc;
+
+	HumanMove(Scrabble game)
+	{
+		this.game = game;
 		actionList = new ArrayList<HumanAction>();
+		wc = new WordsOnBoard(this.game);
 	}
+	 
 	
-	public static ArrayList<HumanAction> getInstance(){
+	public  ArrayList<HumanAction> getInstance(){
 		return  actionList;
 	}
 	
-	public static boolean isValid(){
+	public  boolean isValid(){
 		return hasMovedTiles() && (isRowOrCol()) && !hasGaps() && isJoinedUp() && isProperWord();
 	}
 	
-	private static boolean isJoinedUp(){
-		ArrayList<PlayedWord> newWords = WordsOnBoard.getNewWords();
+	private  boolean isJoinedUp(){
+		ArrayList<PlayedWord> newWords = new WordsOnBoard(game).getNewWords();
 		int letterCount  = 0;
 		for(PlayedWord word: newWords) letterCount += word.word.length();
 		
@@ -38,9 +45,9 @@ public class HumanMove implements Constants {
 		}
 	}
 	
-	private static boolean isProperWord(){
-		if (Scrabble.enforeDictionary.isSelected()){
-			ArrayList<PlayedWord> newWords = WordsOnBoard.getNewWords();
+	private  boolean isProperWord(){
+		if (game.enforeDictionary.isSelected()){
+			ArrayList<PlayedWord> newWords = wc.getNewWords();
 			for (PlayedWord word: newWords){
 				if (!Dictionary.bigTrie.searchWord(word.word)){
 					if (JOptionPane.showConfirmDialog(null,"The word '" + word.word + "' does not appear in ScrabbleBot's Dictionary. \n would you like to play it anyway?"  ) == JOptionPane.YES_OPTION){
@@ -55,7 +62,7 @@ public class HumanMove implements Constants {
 		return true;
 	}
 	
-	private static boolean hasMovedTiles(){
+	private  boolean hasMovedTiles(){
 		if (actionList.size() > 0){
 			return true;
 		}
@@ -63,7 +70,7 @@ public class HumanMove implements Constants {
 		return false;
 	}
 	
-	private static boolean isRowOrCol(){
+	private  boolean isRowOrCol(){
 		if (isRow() || isCol() ){
 			return true;
 		} else {
@@ -72,7 +79,7 @@ public class HumanMove implements Constants {
 		}
 	}
 	
-	private static boolean isRow(){
+	private  boolean isRow(){
 		int moveRow = actionList.get(0).row;
 		for (HumanAction a : actionList){
 			if (moveRow != a.row){
@@ -82,7 +89,7 @@ public class HumanMove implements Constants {
 		return true;
 	}
 	
-	private static boolean isCol(){
+	private  boolean isCol(){
 		int moveCol = actionList.get(0).col;
 		for (HumanAction a : actionList){
 			if (moveCol != a.col){
@@ -92,7 +99,7 @@ public class HumanMove implements Constants {
 		return true;
 	}
 
-	private static void sortActions(){
+	private  void sortActions(){
 		if (isRow()){
 			Collections.sort(actionList, new Comparator<HumanAction>() {
 				public int compare(HumanAction a1 , HumanAction a2){
@@ -108,14 +115,14 @@ public class HumanMove implements Constants {
 		}
 	}
 	
-	private static boolean hasGaps(){
+	private  boolean hasGaps(){
 		
 		if (actionList.size() <= 1) return false;
 		sortActions();		
 		if (isRow()){
 			int row = actionList.get(0).row;
 			for (int col = actionList.get(0).col ; col <= actionList.get(actionList.size()-1).col ; col++){
-				if (Board.getInstance().tileArr[row][col].letter == ' '){
+				if (game.board.tileArr[row][col].letter == ' '){
 					JOptionPane.showMessageDialog(null, "Words must not have gaps");
 					return true;
 				}
@@ -123,7 +130,7 @@ public class HumanMove implements Constants {
 		} else if (isCol()){	
 			int col = actionList.get(0).col;
 			for (int row = actionList.get(0).row ; row <= actionList.get(actionList.size()-1).row ; row++){
-				if (Board.getInstance().tileArr[row][col].letter == ' '){
+				if (game.board.tileArr[row][col].letter == ' '){
 					JOptionPane.showMessageDialog(null, "Words must not have gaps");
 					return true;
 				}
@@ -132,24 +139,24 @@ public class HumanMove implements Constants {
 		return false;
 	}	
 	
-	public static void execute(Player player){
+	public  void execute(Player player){
 		
-		ArrayList<PlayedWord> newWords = WordsOnBoard.getNewWords();
+		ArrayList<PlayedWord> newWords = wc.getNewWords();
 		
 		for (PlayedWord word : newWords){
 			
 			if (!Dictionary.bigTrie.searchWord(word.word)){
-				Scrabble.log.append("??? '" + word.word + "' ??? !\n");
+				game.log.append("??? '" + word.word + "' ??? !\n");
 			}
 			
 			int score = word.score;//Dictionary.getWordScore(word.);
 			
-			Scrabble.log.append(player.name + " plays the word " + word.word + " for " + score + " points\n");
+			game.log.append(player.name + " plays the word " + word.word + " for " + score + " points\n");
 			
 			player.awardPoints(score);
 		}
 		if (player.letterRack.tiles.size() == 0){
-			Scrabble.log.append("***" + player.name + " scores a BINGO for 50 points! ***    \n");
+			game.log.append("***" + player.name + " scores a BINGO for 50 points! ***    \n");
 			player.awardPoints(50);
 		}
 		
@@ -159,16 +166,21 @@ public class HumanMove implements Constants {
 			}
 			actionList = new ArrayList<HumanAction>();
 		}
-		BonusChecker.RemovePlayedBonuses();
-		player.letterRack.refill();
+		new BonusChecker(game.board.tileArr).RemovePlayedBonuses();
+		try {
+			player.letterRack.refill();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
-	public static void reverse(){
+	public  void reverse(){
 		
 		for (HumanAction action : actionList){
 			action.movedTile.setNormal();
-			Scrabble.user.letterRack.tiles.add(action.movedTile);
-			Board.getInstance().tileArr[action.row][action.col] = new Tile(' ', 0);
+			game.user.letterRack.tiles.add(action.movedTile);
+			game.board.tileArr[action.row][action.col] = new Tile(' ', 0);
 		}
 		actionList = new ArrayList<HumanAction>();
 	}

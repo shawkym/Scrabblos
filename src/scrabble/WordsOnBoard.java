@@ -1,13 +1,19 @@
 package scrabble;
 
-import scrabble.*;
 import java.util.ArrayList;
 
 public class WordsOnBoard implements Constants {
 
+	private Scrabble game;
+	private BonusChecker bc;
 	
-	public static ArrayList<PlayedWord> getNewWords(){
-		ArrayList<PlayedWord> old = Scrabble.wordList;
+	WordsOnBoard(Scrabble game){
+		this.game = game;
+		this.bc = new BonusChecker(this.game.board.tileArr);
+	}
+	
+	public  ArrayList<PlayedWord> getNewWords(){
+		ArrayList<PlayedWord> old = game.wordList;
 		ArrayList<PlayedWord> current = getWordList();
 		for (PlayedWord oldWord : old){
 			for (PlayedWord curWord : current){
@@ -25,7 +31,7 @@ public class WordsOnBoard implements Constants {
 		return current;
 	}
 	
-	public static 	ArrayList<PlayedWord> getWordList(){
+	public  	ArrayList<PlayedWord> getWordList(){
 		ArrayList<PlayedWord> words = new ArrayList<>();
 		words.addAll(getVerticalWords());
 		words.addAll(getHorizontalWords());
@@ -34,9 +40,9 @@ public class WordsOnBoard implements Constants {
 	
 	
 	
-	private static ArrayList<PlayedWord> getVerticalWords(){
+	private  ArrayList<PlayedWord> getVerticalWords(){
 		ArrayList<PlayedWord> vertical = new ArrayList<>();
-		Tile[][] TileArr = Board.getInstance().tileArr;
+		Tile[][] TileArr = game.board.tileArr;
 		StringBuilder curWord = new StringBuilder();
 		int multiplier = 1;
 		int score = 0;
@@ -50,8 +56,8 @@ public class WordsOnBoard implements Constants {
 					multiplier = 1;
 					score = 0;
 				} else {
-					score += TileArr[row][col].points * BonusChecker.letterMultiplier(row, col);
-					multiplier *= BonusChecker.wordMultiplier(row, col);
+					score += TileArr[row][col].points * bc.letterMultiplier(row, col);
+					multiplier *= bc.wordMultiplier(row, col);
 					curWord.append(TileArr[row][col].letter);
 				}
 			}
@@ -65,9 +71,9 @@ public class WordsOnBoard implements Constants {
 		return vertical;
 	}
 	
-	private static ArrayList<PlayedWord> getHorizontalWords(){
+	private  ArrayList<PlayedWord> getHorizontalWords(){
 		ArrayList<PlayedWord> horizontal = new ArrayList<>();
-		Tile[][] TileArr = Board.getInstance().tileArr;
+		Tile[][] TileArr = game.board.tileArr;
 		StringBuilder curWord = new StringBuilder();
 		int multiplier = 1;
 		int score = 0;
@@ -81,8 +87,8 @@ public class WordsOnBoard implements Constants {
 					multiplier = 1;
 					score = 0;
 				} else {
-					score += TileArr[row][col].points * BonusChecker.letterMultiplier(row, col);
-					multiplier *= BonusChecker.wordMultiplier(row, col);
+					score += TileArr[row][col].points * bc.letterMultiplier(row, col);
+					multiplier *= bc.wordMultiplier(row, col);
 					curWord.append(TileArr[row][col].letter);
 				}
 			}

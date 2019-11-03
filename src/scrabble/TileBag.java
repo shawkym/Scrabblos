@@ -8,6 +8,7 @@ public class TileBag {
 	Scrabble game;
 	public TileBag(Scrabble scrabble) {
 		this.game = scrabble;
+		TileSet = new ArrayList<Tile>();
 	}
 
 	public Tile takeOutTile(){

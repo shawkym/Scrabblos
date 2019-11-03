@@ -7,27 +7,27 @@ import javax.swing.ImageIcon;
 public class BonusChecker implements Constants{
 	
 
-	public static int[][] Arr;
-	private static Image doubleLetter;
-	private static Image doubleWord;
-	private static Image tripleLetter;
-	private static Image tripleWord;
-	
-	private static final BonusChecker instance;
-	
-	static{ instance = new BonusChecker();}
-	
-	public static BonusChecker getInstance(){
-		return instance;
+	public  int[][] Arr;
+	public  Tile[][] tilearr;
+	private  Image doubleLetter;
+	private  Image doubleWord;
+	private  Image tripleLetter;
+	private  Image tripleWord;
+
+	BonusChecker(Tile[][] tilearr)
+	{
+		this.Arr = new int[BOARD_DIMENSIONS][BOARD_DIMENSIONS];
+		this.tilearr = tilearr;
 	}
-	public static Image getImage(int bonus){
+	
+	public  Image getImage(int bonus){
 		ImageIcon picture = new ImageIcon("images/bonus/" + bonus +".jpg");
 		java.awt.Image TileImage = picture.getImage();
 		java.awt.Image scaledImage = TileImage.getScaledInstance(50, 50, java.awt.Image.SCALE_SMOOTH);
 		return scaledImage;
 	}
 	
-	public static Image findImage(int row, int col){
+	public  Image findImage(int row, int col){
 		int bonus = check(row, col);
 		
 		switch (bonus) {
@@ -39,25 +39,23 @@ public class BonusChecker implements Constants{
 		}
 	}
 	
-	public static int letterMultiplier(int row, int col){
+	public  int letterMultiplier(int row, int col){
 		if (check(row, col) == 1) return 2;
 		if (check(row, col) == 2) return 3;
 		return 1;
 	}
 	
-	public static int wordMultiplier(int row, int col){
+	public  int wordMultiplier(int row, int col){
 		if (check(row, col) == 3) return 2;
 		if (check(row, col) == 4) return 3;
 		return 1;
 	}
 	
-	public static void RemovePlayedBonuses(){
-		Tile[][] tileArr = Board.getInstance().tileArr;
-		
+	public  void RemovePlayedBonuses(){
 		
 		for (int row = 0 ; row < BOARD_DIMENSIONS ; row++){
 			for (int col = 0 ; col < BOARD_DIMENSIONS ; col++){
-				if(tileArr[row][col].letter != ' ') {
+				if(tilearr[row][col].letter != ' ') {
 					Arr[row][col] = 0;
 				}
 			}
@@ -138,7 +136,7 @@ public class BonusChecker implements Constants{
 		
 	}
 	
-	public static Integer check(int row, int col){
+	public  Integer check(int row, int col){
 		return Arr[row][col];
 	}
 	
