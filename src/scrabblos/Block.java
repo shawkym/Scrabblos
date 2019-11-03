@@ -24,14 +24,14 @@ public class Block {
 	private Block previous;
 	private	Word  word;
 	private JSONObject data;
-	
-	
+
+
 	public Block() throws NoSuchAlgorithmException, NoSuchProviderException {
 		this.head = Utils.hash("");
 		this.previous = null;
 		this.data = new JSONObject();
 	}
-	
+
 	public Block(JSONObject data, Block previous) throws NoSuchAlgorithmException, NoSuchProviderException {
 		if (previous !=null && previous.getData() !=null) {
 			head = Utils.hash(previous.getData().toString());
@@ -40,7 +40,7 @@ public class Block {
 		this.data = data;
 		this.previous = previous;	
 	}
-	
+
 	public Block(Block b) throws NoSuchAlgorithmException, NoSuchProviderException {
 		this();
 		this.previous = b;
@@ -52,13 +52,13 @@ public class Block {
 		}
 		return Utils.hash(data.toString());
 	}
-	
+
 	public boolean is_valid() throws NoSuchAlgorithmException, NoSuchProviderException {
 		if(previous == null) return true;
-		
+
 		if(previous.getHash().equals(head)) return previous.is_valid();
 		else return false;
-		
+
 
 	}
 
@@ -94,31 +94,36 @@ public class Block {
 	public void generate() {
 		for(Letter l : word.getMot())
 		{
-		JSONObject letter = new JSONObject();
-		letter.put("letter", l.getLetter());
-		letter.put("period", l.getPeriod());
-		letter.put("head",  l.getHead());
-		letter.put("author", l.getAuthor());
-		letter.put("signature", l.getSignature());
-		data.put("word",letter);
+			JSONObject letter = new JSONObject();
+			letter.put("letter", l.getLetter());
+			letter.put("period", l.getPeriod());
+			letter.put("head",  l.getHead());
+			letter.put("author", l.getAuthor());
+			letter.put("signature", l.getSignature());
+			data.put("word",letter);
 		}
 	}
 
 	public void sign(Ed25519PrivateKeyParameters privateKey, Ed25519PublicKeyParameters publicKey) throws InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, NoSuchProviderException, CryptoException, IOException {;
-		data.put("head", getNewHead());
-		data.put("author", Utils.bytesToHex(publicKey.getEncoded()));
-		ByteBuffer bb = ByteBuffer.allocate(8096);
-		bb.put(getNewHead().getBytes("UTF-8"));
-		bb.put(publicKey.getEncoded());
-		bb.order(ByteOrder.BIG_ENDIAN);
-		MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
-		String f = new String (md.digest(bb.array()),"UTF-8");
-		byte[] sig = Utils.signMessage(f,privateKey);
-		data.put("signature", Utils.bytesToHex(sig));
+	String head = getNewHead(privateKey);
+	data.put("head", head);
+	data.put("author", Utils.bytesToHex(publicKey.getEncoded()));
+	ByteBuffer bb = ByteBuffer.allocate(8096);
+	bb.put(head.getBytes("UTF-8"));
+	bb.put(publicKey.getEncoded());
+	bb.order(ByteOrder.BIG_ENDIAN);
+	MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
+	String f = new String (md.digest(bb.array()),"UTF-8");
+	byte[] sig = Utils.signMessage(f,privateKey);
+	data.put("signature", Utils.bytesToHex(sig));
 	}
 
-	private String getNewHead() {
-		// TODO Auto-generated method stub
-		return null;
+	private String getNewHead(Ed25519PrivateKeyParameters privateKey) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, CryptoException, IOException {
+		if (previous == null)
+			return head;
+		MessageDigest md = MessageDigest.getInstance("SHA-256","BC");
+		String f = new String (md.digest(data.toString().getBytes()));
+		byte[] sig = Utils.signMessage(f,privateKey);
+		return Utils.bytesToHex(sig);
 	}
 }

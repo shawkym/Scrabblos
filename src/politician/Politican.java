@@ -390,7 +390,7 @@ public class Politican implements Runnable {
 				if (b.getLetter() == c)
 				{
 					mbag.add(b);
-					authors_added.add(b.getAuthor());
+					authors_added.add(b.getAuthor().getBytes());
 				}
 			}
 		}

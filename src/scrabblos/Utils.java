@@ -11,13 +11,11 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 
-<<<<<<< HEAD
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.DataLengthException;
 import org.bouncycastle.crypto.Signer;
-=======
->>>>>>> refs/remotes/origin/master
+
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 import org.bouncycastle.util.encoders.Base64;
