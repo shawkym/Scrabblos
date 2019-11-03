@@ -19,6 +19,7 @@ public class Block {
 		this.head = Utils.hash("");
 		this.previous = null;
 		this.data = null;
+		this.word = null;
 	}
 	
 	public Block(JSONObject data, Block previous) throws NoSuchAlgorithmException, NoSuchProviderException {

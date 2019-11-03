@@ -65,6 +65,7 @@ public class Politican implements Runnable {
 	// Logic;
 	public ArrayList<Character> tileBagLetters;
 	public ArrayList<Letter> letterBag;
+	public ArrayList<Word> wordBag;
 	public ArrayList<Character> letterPool;
 	public Set<String> dictionary;
 	//public Trie trie;
@@ -108,6 +109,7 @@ public class Politican implements Runnable {
 		tileBag = new TileBag(scrbl);
 		scrbl.setTileBag(tileBag);
 		
+		wordBag = new ArrayList<Word>();
 		blockchain = new MerkleTree();
 		rootHash = new MerkleHash();
 	}
@@ -180,8 +182,11 @@ public class Politican implements Runnable {
 	/**
 	 * Parse full word pool
 	 * @param word pool as json
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
 	 */
-	private void parseFullWordPool(JSONObject o) {
+	private void parseFullWordPool(JSONObject o) throws JsonParseException, JsonMappingException, IOException {
 		JSONObject j = (JSONObject) o.get("full_wordpool");
 		Integer fperiod = (Integer) j.get("current_period");
 		period = Long.parseLong(fperiod.toString());
@@ -192,6 +197,10 @@ public class Politican implements Runnable {
 		{
 			JsonObject word = (JsonObject) ((JsonArray)l).get(1);
 			letterPool.add(word.get("letter").getAsCharacter());
+			Word w = new Word(word);
+			//blockchain
+			wordBag.add(w);
+			
 		}
 	}
 
@@ -224,7 +233,9 @@ public class Politican implements Runnable {
 			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
 			int s = Letter.getScore(o.get("letter").getAsCharacter());
 			tileBag.AddTile((o.get("letter").getAsCharacter()), s);
+		
 			letterBag.add(new Letter(o));
+			
 			
 		}
 	}
@@ -421,15 +432,15 @@ public class Politican implements Runnable {
 //		//cree le merckle tree avec un hash
 //		MerkleTree tmp = new MerkleTree();
 //		MerkleHash l1 = MerkleHash.create(s);
-////		tmp.appendLeaf(l1);
-//		tmp.appendLeaf(MerkleHash.create("dfd"));
+//		tmp.appendLeaf(l1);
 //		tmp.buildTree();
 //		//merge avec b2 qui doit contient toutes les precedents hash
 //		//afin obtenir un roothash
 //		rootHash = blockchain.addTree(tmp);
 //		//test si roothash verifier l1 
 //		List<MerkleProofHash> auditTrail = tmp.auditProof(l1);
-//        boolean is_verif =  MerkleTree.verifyAudit(rootHash, l1, auditTrail);  
+//        boolean is_verif =  MerkleTree.verifyAudit(rootHash, l1, auditTrail); 
+//        System.out.println(is_verif);
         return true;
 	}
 }
