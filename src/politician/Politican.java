@@ -327,6 +327,7 @@ public class Politican implements Runnable {
 		block.setWord(word);
 		block.generate();
 		block.sign(privateKey,publicKey);
+		
 		JSONObject obj = new JSONObject();
 		obj.put("inject_word",block.getData());
 		String msg = obj.toString();

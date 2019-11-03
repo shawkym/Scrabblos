@@ -1,13 +1,21 @@
 package scrabblos;
 
+import java.io.IOException;
+import java.util.HashMap;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 public class Letter {
 	private final char letter;
 	private final int period;
-	private final byte[] head;
-	private final byte[] author;
-	private final byte[] signature;
+	private final String head;
+	private final String author;
+	private final String signature;
 	
-	public Letter(char letter, int period, byte[] head, byte[] author, byte[] signature) {
+	public Letter(char letter, int period, String head, String author, String signature) {
 		this.letter = letter;
 		this.period = period;
 		this.head = head;
@@ -15,6 +23,17 @@ public class Letter {
 		// signature a chiffre avec ED255519
 		this.signature = signature;
 		
+	}
+	
+	public Letter(JsonObject data) throws JsonParseException, JsonMappingException, IOException {
+		HashMap<String, Object> map = new Gson().fromJson(data.toString(), HashMap.class);
+		String s = (String) map.get("letter");
+		this.letter = s.charAt(0);
+		Double v = (Double) map.get("period");
+		this.period = v.intValue();
+		this.head = (String) map.get("head");
+		this.author = (String) map.get("author");
+		this.signature = (String) map.get("signature");
 	}
 	
 	
@@ -28,17 +47,17 @@ public class Letter {
 	}
 
 
-	public byte[] getHead() {
+	public String getHead() {
 		return head;
 	}
 
 
-	public byte[] getAuthor() {
+	public String getAuthor() {
 		return author;
 	}
 
 
-	public byte[] getSignature() {
+	public String getSignature() {
 		return signature;
 	}
 
