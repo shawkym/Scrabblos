@@ -58,7 +58,7 @@ import scrabblos.Letter;
 import scrabblos.Utils;
 import scrabblos.Word;
 
-public class Politican implements Runnable {
+public class Politican implements Runnable, IPolitician {
 
 	// Network
 	private final static String server = "localhost";
@@ -135,6 +135,7 @@ public class Politican implements Runnable {
 	 * @throws CryptoException
 	 */
 
+	@Override
 	public byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, UnsupportedEncodingException, DataLengthException, CryptoException {
 		Signer signer = new Ed25519Signer();
 		signer.init(true, privateKey);
@@ -150,6 +151,7 @@ public class Politican implements Runnable {
 	 * @throws IOException
 	 */
 
+	@Override
 	public void listen() throws IOException {
 		JSONObject data = new JSONObject();
 		data.put("listen",JSONObject.NULL);
@@ -172,6 +174,7 @@ public class Politican implements Runnable {
 	 * @throws CryptoException
 	 */
 
+	@Override
 	public void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, NoSuchProviderException, CryptoException {
 		long taille_ans = reader.readLong();
 		byte [] cbuf = new byte[(int)taille_ans];
@@ -255,6 +258,7 @@ public class Politican implements Runnable {
 	 * @throws JSONException
 	 */
 
+	@Override
 	public boolean getFullLetterPool() throws IOException, JSONException {
 		JSONObject obj = new JSONObject();
 		obj.put("get_full_letterpool",JSONObject.NULL);
@@ -273,6 +277,7 @@ public class Politican implements Runnable {
 	 * @throws JSONException
 	 */
 
+	@Override
 	public boolean getLetterPoolSince(int p) throws IOException, JSONException {
 		JSONObject obj = new JSONObject();
 		obj.put("get_letterpool_since",p);
@@ -296,6 +301,7 @@ public class Politican implements Runnable {
 	 * @throws NoSuchProviderException
 	 */
 
+	@Override
 	public void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException, IOException, DataLengthException, CryptoException, NoSuchProviderException {
 		period = o.getInt("next_turn");
 		if (tileBagLetters.isEmpty() || period > turn_limit)
@@ -347,14 +353,22 @@ public class Politican implements Runnable {
 	 */
 	private void injectWord(Word word) throws NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidKeyException, DataLengthException, SignatureException, InvalidKeySpecException, CryptoException {
 		Block b = block;
-		block = new Block(b);
-		block.setWord(word);
-		block.generate();
-		block.sign(privateKey,publicKey);
-
+		if(block.getWord() == null)
+		{
+			block.setWord(word);
+			block.generate();
+			block.sign(privateKey,publicKey);
+		}else {
+			block = new Block();
+			block.setPrevious(b);
+			block.setWord(word);
+			block.generate();
+			block.sign(privateKey,publicKey);
+		}
 		JSONObject obj = new JSONObject();
 		obj.put("inject_word",block.getData());
 		String msg = obj.toString();
+		System.out.println("Politician "+id +" Injects\n" + msg);
 		long taille = msg.length();
 		writer.writeLong(taille);
 		writer.write(msg.getBytes("UTF-8"),0,(int)taille);
@@ -398,6 +412,7 @@ public class Politican implements Runnable {
 	 * @param word
 	 * @return true if word became offical
 	 */
+	@Override
 	public boolean injectWordbyAI(String word) {
 
 		ArrayList<Letter> mbag = new ArrayList<Letter>();
@@ -415,6 +430,7 @@ public class Politican implements Runnable {
 				{
 					mbag.add(b);
 					authors_added.add(b.getAuthor().getBytes());
+					break;
 				}
 			}
 		}
@@ -422,8 +438,7 @@ public class Politican implements Runnable {
 
 		try {
 			injectWord(w);
-	
-				return true;
+			return true;
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | IOException | InvalidKeyException | DataLengthException | SignatureException | InvalidKeySpecException | CryptoException e) {
 			e.printStackTrace();
 		}

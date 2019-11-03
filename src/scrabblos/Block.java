@@ -91,24 +91,29 @@ public class Block {
 	public void setWord(Word word) {
 		this.word = word;
 	}
-
+	
+	public void setPrevious(Block b)
+	{
+		this.previous = b;
+	}
+	
 	public void generate() {
 		for(Letter l : word.getMot())
 		{
 			JSONObject letter = new JSONObject();
-			letter.put("letter", l.getLetter());
+			letter.put("letter", new Character(l.getLetter()));
 			letter.put("period", l.getPeriod());
 			letter.put("head",  l.getHead());
 			letter.put("author", l.getAuthor());
 			letter.put("signature", l.getSignature());
-			data.put("word",letter);
+			data.append("word",letter);
 		}
 	}
 
 	public void sign(Ed25519PrivateKeyParameters privateKey, Ed25519PublicKeyParameters publicKey) throws InvalidKeyException, DataLengthException, NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, NoSuchProviderException, CryptoException, IOException {;
 	String head = getNewHead(privateKey);
 	data.put("head", head);
-	data.put("author", Utils.bytesToHex(publicKey.getEncoded()));
+	data.put("politician", Utils.bytesToHex(publicKey.getEncoded()));
 	ByteBuffer bb = ByteBuffer.allocate(8096);
 	bb.put(head.getBytes("UTF-8"));
 	bb.put(publicKey.getEncoded());

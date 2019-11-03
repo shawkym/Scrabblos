@@ -14,43 +14,6 @@ import org.json.JSONObject;
 
 public interface IPolitician {
 
-	/** 
-	 * Register this client on server authority 
-	 * 
-	 * @throws IOException
-	 */
-	void registerOnServer() throws IOException;
-
-	/** 
-	 * Pseudo mine next block 
-	 * @throws IOException
-	 * @throws NoSuchAlgorithmException
-	 * @throws InvalidKeyException
-	 * @throws JSONException
-	 * @throws SignatureException
-	 * @throws DataLengthException
-	 * @throws CryptoException
-	 * @throws NoSuchProviderException
-	 */
-	void injectLetter() throws IOException, NoSuchAlgorithmException, InvalidKeyException, JSONException,
-			SignatureException, DataLengthException, CryptoException, NoSuchProviderException;
-
-	/**
-	 * Get a letter from letter_bag and prepare it for injection
-	 * and adds it to the current letter_pool
-	 * @return JSONObject containing a letter
-	 * @throws JSONException
-	 * @throws NoSuchAlgorithmException
-	 * @throws UnsupportedEncodingException
-	 * @throws InvalidKeyException
-	 * @throws SignatureException
-	 * @throws DataLengthException
-	 * @throws CryptoException
-	 * @throws NoSuchProviderException
-	 */
-	JSONObject getLetter() throws JSONException, NoSuchAlgorithmException, UnsupportedEncodingException,
-			InvalidKeyException, SignatureException, DataLengthException, CryptoException, NoSuchProviderException;
-
 	/**
 	 * Signs a message using Ed25519Signer
 	 * @param  a message to sign
@@ -62,6 +25,7 @@ public interface IPolitician {
 	 * @throws DataLengthException
 	 * @throws CryptoException
 	 */
+
 	byte[] signMessage(String message) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException,
 			UnsupportedEncodingException, DataLengthException, CryptoException;
 
@@ -69,6 +33,7 @@ public interface IPolitician {
 	 * Inform the server authority we're reading update regularly 
 	 * @throws IOException
 	 */
+
 	void listen() throws IOException;
 
 	/**
@@ -82,6 +47,7 @@ public interface IPolitician {
 	 * @throws NoSuchProviderException
 	 * @throws CryptoException
 	 */
+
 	void read() throws IOException, JSONException, InvalidKeyException, DataLengthException, NoSuchAlgorithmException,
 			SignatureException, NoSuchProviderException, CryptoException;
 
@@ -91,6 +57,7 @@ public interface IPolitician {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
+
 	boolean getFullLetterPool() throws IOException, JSONException;
 
 	/**
@@ -100,6 +67,7 @@ public interface IPolitician {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
+
 	boolean getLetterPoolSince(int p) throws IOException, JSONException;
 
 	/**
@@ -114,7 +82,16 @@ public interface IPolitician {
 	 * @throws CryptoException
 	 * @throws NoSuchProviderException
 	 */
+
 	void nextTurn(JSONObject o) throws InvalidKeyException, JSONException, NoSuchAlgorithmException, SignatureException,
 			IOException, DataLengthException, CryptoException, NoSuchProviderException;
+
+	/**
+	 * New Word discovered by Miner
+	 * Called by Miner to start word injection
+	 * @param word
+	 * @return true if word became offical
+	 */
+	boolean injectWordbyAI(String word);
 
 }
