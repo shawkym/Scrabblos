@@ -118,6 +118,8 @@ public class Politican implements Runnable {
 		wordBag = new ArrayList<Word>();
 		blockchain = new MerkleTree();
 		rootHash = new MerkleHash();
+		blockchain.appendLeaf(rootHash);
+		blockchain.buildTree();
 	}
 
 
@@ -420,7 +422,7 @@ public class Politican implements Runnable {
 
 		try {
 			injectWord(w);
-			if(last_block_now_official())
+	
 				return true;
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | IOException | InvalidKeyException | DataLengthException | SignatureException | InvalidKeySpecException | CryptoException e) {
 			e.printStackTrace();
@@ -433,10 +435,10 @@ public class Politican implements Runnable {
 	 * See if injected word is taken by all servers
 	 * @return
 	 */
-	private boolean last_block_now_official() {
+	private boolean last_block_now_official(Block b) {
 
 		String s = "";
-		for (Letter c : block.getWord().mot) {
+		for (Letter c : b.getWord().mot) {
 			s+= c.getLetter();
 		}
 		//cree le merckle tree avec un hash
