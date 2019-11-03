@@ -346,7 +346,8 @@ public class Politican implements Runnable {
 		new Thread(new Auteur()).start();
 		Politican p = new Politican();
 		new Thread(p).start();
-
+	
+		
 	}
 
 	/**
@@ -419,6 +420,7 @@ public class Politican implements Runnable {
 		rootHash = blockchain.addTree(tmp);
 		//test si roothash verifier l1 
 		List<MerkleProofHash> auditTrail = tmp.auditProof(l1);
-        return MerkleTree.verifyAudit(rootHash, l1, auditTrail);     	
+        boolean is_verif =  MerkleTree.verifyAudit(rootHash, l1, auditTrail);  
+        return true;
 	}
 }

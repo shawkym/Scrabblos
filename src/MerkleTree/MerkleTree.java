@@ -118,8 +118,8 @@ public class MerkleTree {
                 throw new InvalidParameterException("Parent of child is not expected parent!");
             }
 
-            MerkleNode nextChild = parent.getLeft() == child ? parent.getRight() : parent.getLeft();
-            MerkleProofHash.Branch direction = parent.getLeft() == child
+            MerkleNode nextChild = parent.getLeftNode() == child ? parent.getRightNode() : parent.getLeftNode();
+            MerkleProofHash.Branch direction = parent.getLeftNode() == child
                     ? MerkleProofHash.Branch.RIGHT
                     : MerkleProofHash.Branch.LEFT;
 
