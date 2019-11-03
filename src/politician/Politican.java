@@ -67,7 +67,6 @@ public class Politican implements Runnable {
 	//public Trie trie;
 	
 	public MerkleTree blockchain;
-	public MerkleTree blockchain2;
 	MerkleHash rootHash;
 	
 	private long period;
@@ -107,7 +106,6 @@ public class Politican implements Runnable {
 		scrbl.setTileBag(tileBag);
 		
 		blockchain = new MerkleTree();
-		blockchain2 = new MerkleTree();
 		rootHash = new MerkleHash();
 	}
 
@@ -412,14 +410,15 @@ public class Politican implements Runnable {
 			s+= c.getLetter();
 		}
 		//cree le merckle tree avec un hash
+		MerkleTree tmp = new MerkleTree();
 		MerkleHash l1 = MerkleHash.create(s);
-		blockchain.appendLeaf(l1);
-		blockchain.buildTree();
+		tmp.appendLeaf(l1);
+		tmp.buildTree();
 		//merge avec b2 qui doit contient toutes les precedents hash
 		//afin obtenir un roothash
-		rootHash = blockchain2.addTree(blockchain);
+		rootHash = blockchain.addTree(tmp);
 		//test si roothash verifier l1 
-		List<MerkleProofHash> auditTrail = blockchain.auditProof(l1);
+		List<MerkleProofHash> auditTrail = tmp.auditProof(l1);
         return MerkleTree.verifyAudit(rootHash, l1, auditTrail);     	
 	}
 }
