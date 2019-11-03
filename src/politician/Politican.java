@@ -27,9 +27,12 @@ import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -205,8 +208,11 @@ public class Politican implements Runnable {
 	/**
 	 * Parse letter_pool message 
 	 * @param letterPool JSONObject contatining message 
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
 	 */
-	private void parseLetterPool(JSONObject x) {
+	private void parseLetterPool(JSONObject x) throws JsonParseException, JsonMappingException, IOException {
 		JSONObject j = (JSONObject) x.get("full_letterpool");
 		Integer fperiod = (Integer) j.get("current_period");
 		period = Long.parseLong(fperiod.toString());
@@ -218,6 +224,10 @@ public class Politican implements Runnable {
 			JsonObject o = (JsonObject) ((JsonArray)l).get(1);
 			int s = Letter.getScore(o.get("letter").getAsCharacter());
 			tileBag.AddTile((o.get("letter").getAsCharacter()), s);
+			
+			System.out.println(l.toString().substring(l.toString().indexOf("{"), l.toString().length()-1));
+			letterBag.add(new Letter(l.toString().substring(l.toString().indexOf("{"), l.toString().length()-1)));
+			
 		}
 	}
 
@@ -369,7 +379,7 @@ public class Politican implements Runnable {
 	public boolean injectWordbyAI(String word) {
 
 		ArrayList<Letter> mbag = new ArrayList<Letter>();
-		ArrayList<byte[]> authors_added = new ArrayList<byte[]>();
+		ArrayList<String> authors_added = new ArrayList<String>();
 
 		for (char c : word.toCharArray())
 		{
@@ -406,21 +416,22 @@ public class Politican implements Runnable {
 	private boolean last_block_now_official() {
 		// TODO Wu consensus politicians
 		
-		String s = "";
-		for (Letter c : block.getWord().mot) {
-			s+= c.getLetter();
-		}
-		//cree le merckle tree avec un hash
-		MerkleTree tmp = new MerkleTree();
-		MerkleHash l1 = MerkleHash.create(s);
-		tmp.appendLeaf(l1);
-		tmp.buildTree();
-		//merge avec b2 qui doit contient toutes les precedents hash
-		//afin obtenir un roothash
-		rootHash = blockchain.addTree(tmp);
-		//test si roothash verifier l1 
-		List<MerkleProofHash> auditTrail = tmp.auditProof(l1);
-        boolean is_verif =  MerkleTree.verifyAudit(rootHash, l1, auditTrail);  
+//		String s = "";
+//		for (Letter c : block.getWord().mot) {
+//			s+= c.getLetter();
+//		}
+//		//cree le merckle tree avec un hash
+//		MerkleTree tmp = new MerkleTree();
+//		MerkleHash l1 = MerkleHash.create(s);
+////		tmp.appendLeaf(l1);
+//		tmp.appendLeaf(MerkleHash.create("dfd"));
+//		tmp.buildTree();
+//		//merge avec b2 qui doit contient toutes les precedents hash
+//		//afin obtenir un roothash
+//		rootHash = blockchain.addTree(tmp);
+//		//test si roothash verifier l1 
+//		List<MerkleProofHash> auditTrail = tmp.auditProof(l1);
+//        boolean is_verif =  MerkleTree.verifyAudit(rootHash, l1, auditTrail);  
         return true;
 	}
 }

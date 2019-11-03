@@ -1,13 +1,20 @@
 package scrabblos;
 
+import java.io.IOException;
+import java.util.HashMap;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class Letter {
 	private final char letter;
 	private final int period;
-	private final byte[] head;
-	private final byte[] author;
-	private final byte[] signature;
+	private final String head;
+	private final String author;
+	private final String signature;
 	
-	public Letter(char letter, int period, byte[] head, byte[] author, byte[] signature) {
+	public Letter(char letter, int period, String head, String author, String signature) {
 		this.letter = letter;
 		this.period = period;
 		this.head = head;
@@ -15,6 +22,16 @@ public class Letter {
 		// signature a chiffre avec ED255519
 		this.signature = signature;
 		
+	}
+	
+	public Letter(String data) throws JsonParseException, JsonMappingException, IOException {
+		HashMap<String,Object> map =
+		        new ObjectMapper().readValue(data, HashMap.class);
+		this.letter = (char) map.get("letter");
+		this.period = (int) map.get("period");
+		this.head = (String) map.get("head");
+		this.author = (String) map.get("author");
+		this.signature = (String) map.get("signature");
 	}
 	
 	
@@ -28,17 +45,17 @@ public class Letter {
 	}
 
 
-	public byte[] getHead() {
+	public String getHead() {
 		return head;
 	}
 
 
-	public byte[] getAuthor() {
+	public String getAuthor() {
 		return author;
 	}
 
 
-	public byte[] getSignature() {
+	public String getSignature() {
 		return signature;
 	}
 
